@@ -1,14 +1,28 @@
 @import './base.css';
 
+/* HTML과 BODY의 높이를 100%로 설정 */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: white; /* 배경을 흰색으로 설정 */
+}
+
+/* #app에 min-height를 100vh로 설정하여 화면을 꽉 채움 */
 #app {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
   font-weight: normal;
+  background-color: white;
+  min-height: 100vh; /* 화면 전체 높이 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* 수직 중앙 정렬 */
 }
 
-a,
-.green {
+/* 링크 스타일 */
+a, .green {
   text-decoration: none;
   color: hsla(160, 100%, 37%, 1);
   transition: 0.4s;
@@ -21,15 +35,19 @@ a,
   }
 }
 
+/* 큰 화면에서의 레이아웃 조정 */
 @media (min-width: 1024px) {
   body {
     display: flex;
-    place-items: center;
+    justify-content: center; /* 수평 중앙 정렬 */
+    align-items: center; /* 수직 중앙 정렬 */
   }
 
   #app {
     display: grid;
     grid-template-columns: 1fr 1fr;
     padding: 0 2rem;
+    max-width: 1280px;
+    margin: 0 auto;
   }
 }

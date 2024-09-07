@@ -8,7 +8,6 @@ module.exports = {
     ecmaVersion: 'latest'
   },
   rules: {
-    // 'no-undef': 'error',
     'vue/multi-word-component-names': 0,
     'vue/no-undef-properties': [
       'error',
