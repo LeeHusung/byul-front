@@ -51,6 +51,7 @@
                 dense
                 required
               />
+              <input type="file" multiple @change="handleFileChange" />
             </q-form>
           </q-card-section>
 
@@ -84,6 +85,7 @@ const newPost = ref({
   title: '',
   content: ''
 })
+const files = ref([]) // 이미지 파일 배열
 
 // 서버로부터 게시글 불러오기 (페이징 적용)
 const fetchPosts = async () => {
@@ -104,10 +106,26 @@ const fetchPosts = async () => {
 const goToDetail = (id) => {
   router.push(`/board/${id}`) // 해당 게시글의 ID로 라우팅
 }
+const handleFileChange = (event) => {
+  files.value = event.target.files
+}
 // 글 작성하기 (모달에서)
 const submitPost = async () => {
+  const formData = new FormData()
+  formData.append('title', newPost.value.title)
+  formData.append('content', newPost.value.content)
+
+  // 여러 이미지 파일을 formData에 추가
+  for (let i = 0; i < files.value.length; i++) {
+    formData.append('images', files.value[i])
+  }
+
   try {
-    await axios.post(`/api/v1/board`, newPost.value)
+    await axios.post(`/api/v1/board`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
     $q.notify({ type: 'positive', message: '글이 성공적으로 작성되었습니다!' })
     newPost.value = { title: '', content: '' } // 폼 초기화
     closeDialog() // 모달 닫기
