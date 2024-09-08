@@ -4,6 +4,7 @@ import board from '@/views/Board.vue'
 import Register from '@/views/Register.vue'
 import Home from '@/views/Home.vue'
 import Board from '@/views/Board.vue'
+import BoardDetail from '@/views/BoardDetail.vue'
 
 const routes = [
   {
@@ -38,6 +39,11 @@ const routes = [
     path: '/board',
     name: 'board',
     component: board
+  },
+  {
+    path: '/board/:id',
+    name: 'BoardDetail',
+    component: BoardDetail
   }
 ]
 

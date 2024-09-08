@@ -8,7 +8,13 @@
 
       <!-- 게시글 목록 -->
       <q-list bordered class="q-mt-lg">
-        <q-item v-for="post in posts" :key="post.id" v-ripple clickable>
+        <q-item
+          v-for="post in posts"
+          :key="post.id"
+          v-ripple
+          clickable
+          @click="goToDetail(post.id)"
+        >
           <q-item-section>
             <q-item-label class="text-black">{{ post.title }}</q-item-label>
             <q-item-label class="text-black">{{ post.content }}</q-item-label>
@@ -17,13 +23,15 @@
       </q-list>
 
       <!-- 페이지네이션 -->
-      <q-pagination
-        v-model="currentPage"
-        bordered
-        class="paging"
-        :max="totalPages"
-        @update:model-value="fetchPosts"
-      />
+      <div class="pagination-container">
+        <q-pagination
+          v-model="currentPage"
+          bordered
+          class="paging"
+          :max="totalPages"
+          @update:model-value="fetchPosts"
+        />
+      </div>
 
       <!-- 글 작성 모달 -->
       <q-dialog v-model="isDialogOpen" persistent>
@@ -60,6 +68,7 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
+import router from '@/router/index.js'
 
 const $q = useQuasar()
 
@@ -85,14 +94,16 @@ const fetchPosts = async () => {
         size: pageSize
       }
     })
-
+    console.log(response)
     posts.value = response.data.boardList
-    totalPages.value = Math.ceil(response.data.totalItems / pageSize)
+    totalPages.value = Math.ceil(response.data.totalCount / pageSize)
   } catch (error) {
     $q.notify({ type: 'negative', message: '게시글을 불러오는데 실패했습니다.' })
   }
 }
-
+const goToDetail = (id) => {
+  router.push(`/board/${id}`) // 해당 게시글의 ID로 라우팅
+}
 // 글 작성하기 (모달에서)
 const submitPost = async () => {
   try {
@@ -140,14 +151,15 @@ onMounted(fetchPosts)
   padding-top: 20px;
   width: 100%;
 }
+.pagination-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
 .paging {
   background-color: #f5f5f5;
-  min-height: calc(100vh - 60px); /* 헤더 높이를 제외한 화면 높이 */
-  display: flex;
-  justify-content: center; /* 중앙 정렬 */
-  align-items: flex-start; /* 상단에 정렬 */
-  padding-top: 20px;
-  width: 100%;
 }
 .content-container {
   background-color: white;
