@@ -2,7 +2,7 @@
   <q-page class="q-pa-lg board-page">
     <div class="content-container">
       <div class="text-h4 q-mb-lg text-center" style="color: black">{{ post.title }}</div>
-      <div class="q-mb-lg text-right">
+      <div v-if="isOwner" class="q-mb-lg text-right">
         <!-- 수정 및 삭제 버튼 -->
         <q-btn label="수정" color="primary" class="q-mr-sm" @click="editPost" />
         <q-btn label="삭제" color="negative" @click="deletePost" />
@@ -48,10 +48,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
+import { useAuthStore } from '@/stores/authStore.js'
 
 const $q = useQuasar()
 const router = useRouter()
@@ -67,6 +68,14 @@ const editedPost = ref({
 
 // 게시글 ID 추출 (라우트에서 가져옴)
 const postId = route.params.id
+// authStore에서 현재 로그인된 사용자 정보 가져오기
+const authStore = useAuthStore()
+
+// 현재 로그인된 사용자 이메일
+const currentUserEmail = computed(() => authStore.user.memberEmail)
+
+// 게시글 작성자와 현재 로그인된 사용자의 이메일 비교
+const isOwner = computed(() => post.value.memberEmail === currentUserEmail.value)
 
 // 게시글 상세 정보 불러오기
 const fetchPostDetail = async () => {

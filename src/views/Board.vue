@@ -70,6 +70,7 @@ import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
 import router from '@/router/index.js'
+import response from 'core-js/internals/is-forced.js'
 
 const $q = useQuasar()
 
@@ -110,23 +111,39 @@ const handleFileChange = (event) => {
   files.value = event.target.files
 }
 // 글 작성하기 (모달에서)
+// 글 작성하기 (모달에서)
 const submitPost = async () => {
   const formData = new FormData()
-  formData.append('title', newPost.value.title)
-  formData.append('content', newPost.value.content)
+
+  // 객체 형태의 boardCreateRequest 생성
+  const boardCreateRequest = {
+    title: newPost.value.title,
+    content: newPost.value.content
+  }
+
+  // boardCreateRequest를 JSON 문자열로 변환 후 FormData에 추가
+  formData.append(
+    'boardCreateRequest',
+    new Blob([JSON.stringify(boardCreateRequest)], { type: 'application/json' })
+  )
 
   // 여러 이미지 파일을 formData에 추가
   for (let i = 0; i < files.value.length; i++) {
     formData.append('images', files.value[i])
   }
 
+  const token = localStorage.getItem('token') // 또는 Pinia의 authStore에서 가져오기
+
   try {
-    await axios.post(`/api/v1/board`, formData, {
+    const response = await axios.post(`http://localhost:8080/api/v1/board`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${token}` // 토큰 추가
       }
     })
+    const createdBoardId = response.data.id // 성공 시 반환된 게시글 ID
     $q.notify({ type: 'positive', message: '글이 성공적으로 작성되었습니다!' })
+    router.push(`/board/${createdBoardId}`)
     newPost.value = { title: '', content: '' } // 폼 초기화
     closeDialog() // 모달 닫기
     fetchPosts() // 게시글 목록 갱신

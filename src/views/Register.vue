@@ -34,11 +34,11 @@
             required
           />
           <q-input
-            v-model="name"
-            label="이름"
+            v-model="role"
+            label="역할"
             outlined
             dense
-            :rules="[(val) => !!val || '이름을 입력하세요']"
+            :rules="[(val) => !!val || '역할을 입력하세요']"
             required
           />
           <q-input
@@ -90,8 +90,9 @@ const password = ref('')
 const passwordConfirm = ref('') // 비밀번호 확인 필드
 const nickname = ref('')
 const contact = ref('')
-const name = ref('')
-const gender = ref('male') // 기본값은 남성으로 설정
+// const name = ref('')
+// const gender = ref('MALE') // 기본값은 남성으로 설정
+const role = ref('USER')
 const authStore = useAuthStore()
 const router = useRouter()
 const $q = useQuasar()
@@ -111,10 +112,10 @@ const onSubmit = async () => {
     await authStore.register({
       email: email.value,
       password: password.value,
+      // name: name.value,
       nickname: nickname.value,
       contact: contact.value,
-      name: name.value,
-      gender: gender.value
+      role: role.value
     })
     $q.notify({ type: 'positive', message: '회원가입에 성공했습니다!' })
     await router.push('/')

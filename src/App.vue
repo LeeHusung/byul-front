@@ -9,7 +9,8 @@
         <q-btn flat round dense label="홈" @click="goToHome" />
         <q-btn flat round dense label="게시판" @click="goToBoard" />
         <q-btn flat round dense label="회원가입" @click="goToRegister" />
-        <q-btn flat round dense label="로그인" @click="goToLogin" />
+        <q-btn v-if="!isAuthenticated" flat round dense label="로그인" @click="goToLogin" />
+        <q-btn v-if="isAuthenticated" flat round dense label="로그아웃" @click="logout" />
       </q-toolbar>
     </q-header>
 
@@ -27,16 +28,34 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { useAuthStore } from './stores/authStore'
+
 const router = useRouter()
+const authStore = useAuthStore()
+
+// 로그인 여부를 computed로 가져와서 반영
+const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 const goToHome = () => router.push('/')
-const goToBoard = () => router.push('/board') // 게시판 페이지로 이동하는 함수
+const goToBoard = () => router.push('/board')
 const goToRegister = () => router.push('/register')
 const goToLogin = () => router.push('/login')
+
+const logout = () => {
+  authStore.logout()
+  router.push('/') // 로그아웃 후 홈으로 이동
+}
+
+// 앱이 로드될 때 토큰이 있으면 getUser() 호출
+onMounted(async () => {
+  if (authStore.token) {
+    await authStore.fetchUser() // 사용자 정보 가져오기
+  }
+})
 </script>
 
 <style scoped>
-/* 헤더와 버튼 스타일 */
 .q-header {
   background-color: #1e88e5; /* 네비게이션 바 색상: 파란색 */
   color: white;
@@ -52,13 +71,11 @@ const goToLogin = () => router.push('/login')
   text-transform: uppercase;
 }
 
-/* 페이지 레이아웃 패딩 및 정렬 */
 .q-page-container {
   background-color: #f5f5f5; /* 페이지 배경: 밝은 회색 */
   min-height: calc(100vh - 60px); /* 헤더 및 푸터를 제외한 높이 */
 }
 
-/* 푸터 스타일 */
 .q-footer {
   background-color: #424242; /* 푸터 배경색: 짙은 회색 */
   color: white;

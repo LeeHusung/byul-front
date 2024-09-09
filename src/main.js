@@ -7,12 +7,14 @@ import 'quasar/dist/quasar.css'
 
 import App from './App.vue'
 import router from './router'
-import { Quasar } from 'quasar'
+import { Notify, Quasar } from 'quasar'
 
 const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
-app.use(Quasar)
+app.use(Quasar, {
+  plugins: { Notify }
+})
 
 app.mount('#app')

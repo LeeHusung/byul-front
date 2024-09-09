@@ -2,7 +2,7 @@
 import axios from 'axios'
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8080', // 실제 API 주소로 변경하세요.
+  baseURL: 'http://localhost:8080',
   headers: {
     'Content-Type': 'application/json'
   }

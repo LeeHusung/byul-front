@@ -25,13 +25,25 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/authStore'
+import router from '@/router/index.js'
+import { useQuasar } from 'quasar'
 
 const email = ref('')
 const password = ref('')
 const authStore = useAuthStore()
+const $q = useQuasar()
 
-const onSubmit = () => {
-  authStore.login({ email: email.value, password: password.value })
+const onSubmit = async () => {
+  try {
+    await authStore.login({ email: email.value, password: password.value })
+    $q.notify({ type: 'positive', message: '로그인에 성공했습니다!' })
+    await router.push('/')
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error.response?.data?.message || '로그인에 실패했습니다.'
+    })
+  }
 }
 </script>
 
