@@ -18,6 +18,18 @@
           <q-item-section>
             <q-item-label class="text-black">{{ post.title }}</q-item-label>
             <q-item-label class="text-black">{{ post.content }}</q-item-label>
+            <div class="post-info-container">
+              <q-item-label class="post-info"
+                ><q-icon /> 닉네임: {{ post.memberNickname }}
+              </q-item-label>
+              <q-item-label class="post-info"
+                ><q-icon /> {{ post.boardLikeCount }} 추천</q-item-label
+              >
+              <q-item-label class="post-info"
+                ><q-icon /> 댓글 수: {{ post.commentCount }}
+              </q-item-label>
+              <q-item-label class="post-info"><q-icon /> {{ post.views }} 조회</q-item-label>
+            </div>
           </q-item-section>
         </q-item>
       </q-list>
@@ -66,29 +78,27 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useQuasar } from 'quasar'
-import axios from 'axios'
-import router from '@/router/index.js'
-import response from 'core-js/internals/is-forced.js'
+import { ref, onMounted } from 'vue';
+import { useQuasar } from 'quasar';
+import axios from 'axios';
+import router from '@/router/index.js';
 
-const $q = useQuasar()
+const $q = useQuasar();
 
 // 게시글 목록 변수 및 페이징 관련 변수
-const posts = ref([])
-const currentPage = ref(1)
-const totalPages = ref(1)
-const pageSize = 10
+const posts = ref([]);
+const currentPage = ref(1);
+const totalPages = ref(1);
+const pageSize = 10;
 
 // 새 글 작성 모달 상태 및 새 글 정보
-const isDialogOpen = ref(false)
+const isDialogOpen = ref(false);
 const newPost = ref({
   title: '',
   content: ''
-})
-const files = ref([]) // 이미지 파일 배열
+});
+const files = ref([]); // 이미지 파일 배열
 
-// 서버로부터 게시글 불러오기 (페이징 적용)
 const fetchPosts = async () => {
   try {
     const response = await axios.get(`http://localhost:8080/api/v1/board`, {
@@ -96,43 +106,42 @@ const fetchPosts = async () => {
         page: currentPage.value - 1,
         size: pageSize
       }
-    })
-    console.log(response)
-    posts.value = response.data.boardList
-    totalPages.value = Math.ceil(response.data.totalCount / pageSize)
+    });
+    posts.value = response.data.boardList;
+    console.log(response.data);
+    totalPages.value = Math.ceil(response.data.totalCount / pageSize);
   } catch (error) {
-    $q.notify({ type: 'negative', message: '게시글을 불러오는데 실패했습니다.' })
+    $q.notify({ type: 'negative', message: '게시글을 불러오는데 실패했습니다.' });
   }
-}
+};
 const goToDetail = (id) => {
-  router.push(`/board/${id}`) // 해당 게시글의 ID로 라우팅
-}
+  router.push(`/board/${id}`); // 해당 게시글의 ID로 라우팅
+};
 const handleFileChange = (event) => {
-  files.value = event.target.files
-}
-// 글 작성하기 (모달에서)
+  files.value = event.target.files;
+};
+const token = localStorage.getItem('token'); // 또는 Pinia의 authStore에서 가져오기
+
 // 글 작성하기 (모달에서)
 const submitPost = async () => {
-  const formData = new FormData()
+  const formData = new FormData();
 
   // 객체 형태의 boardCreateRequest 생성
   const boardCreateRequest = {
     title: newPost.value.title,
     content: newPost.value.content
-  }
+  };
 
   // boardCreateRequest를 JSON 문자열로 변환 후 FormData에 추가
   formData.append(
     'boardCreateRequest',
     new Blob([JSON.stringify(boardCreateRequest)], { type: 'application/json' })
-  )
+  );
 
   // 여러 이미지 파일을 formData에 추가
   for (let i = 0; i < files.value.length; i++) {
-    formData.append('images', files.value[i])
+    formData.append('images', files.value[i]);
   }
-
-  const token = localStorage.getItem('token') // 또는 Pinia의 authStore에서 가져오기
 
   try {
     const response = await axios.post(`http://localhost:8080/api/v1/board`, formData, {
@@ -140,29 +149,31 @@ const submitPost = async () => {
         'Content-Type': 'multipart/form-data',
         Authorization: `Bearer ${token}` // 토큰 추가
       }
-    })
-    const createdBoardId = response.data.id // 성공 시 반환된 게시글 ID
-    $q.notify({ type: 'positive', message: '글이 성공적으로 작성되었습니다!' })
-    router.push(`/board/${createdBoardId}`)
-    newPost.value = { title: '', content: '' } // 폼 초기화
-    closeDialog() // 모달 닫기
-    fetchPosts() // 게시글 목록 갱신
+    });
+    const createdBoardId = response.data.id; // 성공 시 반환된 게시글 ID
+    $q.notify({ type: 'positive', message: '글이 성공적으로 작성되었습니다!' });
+    router.push(`/board/${createdBoardId}`);
+    newPost.value = { title: '', content: '' }; // 폼 초기화
+    closeDialog(); // 모달 닫기
+    fetchPosts(); // 게시글 목록 갱신
   } catch (error) {
-    $q.notify({ type: 'negative', message: '글 작성에 실패했습니다.' })
+    $q.notify({ type: 'negative', message: '글 작성에 실패했습니다.' });
   }
-}
+};
 
 // 모달 열기 및 닫기
 const openDialog = () => {
-  isDialogOpen.value = true
-}
+  if (token == null) {
+    $q.notify({ type: 'negative', message: '로그인이 필요한 기능입니다.' });
+  } else isDialogOpen.value = true;
+};
 
 const closeDialog = () => {
-  isDialogOpen.value = false
-}
+  isDialogOpen.value = false;
+};
 
 // 컴포넌트가 마운트되면 게시글 목록 불러오기
-onMounted(fetchPosts)
+onMounted(fetchPosts);
 </script>
 
 <style scoped>

@@ -33,14 +33,14 @@
             :rules="[(val) => !!val || '비밀번호 확인을 입력하세요', validatePasswordConfirm]"
             required
           />
-          <q-input
-            v-model="role"
-            label="역할"
-            outlined
-            dense
-            :rules="[(val) => !!val || '역할을 입력하세요']"
-            required
-          />
+          <!--          <q-input-->
+          <!--            v-model="role"-->
+          <!--            label="역할"-->
+          <!--            outlined-->
+          <!--            dense-->
+          <!--            :rules="[(val) => !!val || '역할을 입력하세요']"-->
+          <!--            required-->
+          <!--          />-->
           <q-input
             v-model="nickname"
             label="닉네임"
