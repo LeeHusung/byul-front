@@ -1,19 +1,27 @@
 <script setup>
-import { useRouter } from 'vue-router'
-const router = useRouter()
+import { useRouter } from 'vue-router';
+import { computed } from 'vue';
+import { useAuthStore } from '@/stores/authStore.js';
+const router = useRouter();
 
 // 각 페이지로 이동하는 함수
 const goToRegister = () => {
-  router.push('/register')
-}
+  router.push('/register');
+};
 
 const goToLogin = () => {
-  router.push('/login')
-}
+  router.push('/login');
+};
 
 const goToBoard = () => {
-  router.push('/board')
-}
+  router.push('/board');
+};
+const goToMine = () => {
+  router.push('/my');
+};
+
+const isAuthenticated = computed(() => !!authStore.token);
+const authStore = useAuthStore();
 </script>
 
 <template>
@@ -24,13 +32,21 @@ const goToBoard = () => {
       <!-- 버튼들 -->
       <div class="button-container q-my-md">
         <q-btn label="게시판" color="primary" class="q-mb-md full-width" @click="goToBoard" />
+        <q-btn label="마이페이지" color="primary" class="q-mb-md full-width" @click="goToMine" />
         <q-btn
+          v-if="!isAuthenticated"
           label="회원가입"
           color="secondary"
           class="q-mb-md full-width"
           @click="goToRegister"
         />
-        <q-btn label="로그인" color="secondary" class="full-width" @click="goToLogin" />
+        <q-btn
+          v-if="!isAuthenticated"
+          label="로그인"
+          color="secondary"
+          class="full-width"
+          @click="goToLogin"
+        />
       </div>
 
       <!-- 추가적인 설명 -->

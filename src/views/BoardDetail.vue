@@ -1,73 +1,48 @@
 <template>
   <q-page class="q-pa-lg board-page">
     <div class="content-container">
-      <div class="text-h4 q-mb-lg text-center" style="color: black">{{ board.title }}</div>
+      <div class="text-h4 q-mb-lg text-center board-title">{{ board.title }}</div>
 
-      <div class="q-mb-lg text-right">
-        <q-item-label>게시글 좋아요 수 : {{ board.boardLikesCount }} </q-item-label>
-        <!-- 게시글 좋아요 수 -->
+      <div class="q-mb-lg text-right board-meta">
+        <q-item-label>❤️ 게시글 좋아요 수: {{ board.boardLikesCount }} </q-item-label>
         <q-btn
-          :icon="hasLikedPost ? '추천완료' : '추천하기'"
           color="red"
           flat
+          :label="hasLikedPost ? '추천완료' : '게시글 추천하기'"
           @click="togglePostLike"
-        >
-          <!--          좋아요-->
-        </q-btn>
-        <q-item-label>댓글 수 : {{ comments.length }} </q-item-label>
-        <q-item-label>생성 일자 : {{ board.createdAt }} </q-item-label>
-        <q-item-label>마지막 수정 일자 : {{ board.lastUpdatedAt }} </q-item-label>
-        <!-- 댓글 수 -->
+        ></q-btn>
+
+        <q-item-label>🗓️ 생성: {{ formatDateTime(board.createdAt) }}</q-item-label>
+        <q-item-label>⏰ 수정: {{ formatDateTime(board.lastUpdatedAt) }}</q-item-label>
       </div>
 
-      <div v-if="isOwnerBoard" class="q-mb-lg text-right">
-        <!-- 수정 및 삭제 버튼 -->
-        <q-btn label="수정" color="primary" class="q-mr-sm" @click="editBoard" />
+      <div v-if="isOwnerBoard" class="q-mb-lg text-right board-actions">
+        <q-btn label="수정" color="primary" @click="navigateToUpdateBoard" />
         <q-btn label="삭제" color="negative" @click="openDeleteDialog" />
       </div>
 
-      <!-- 게시글 내용 -->
-      <q-card bordered class="q-mb-lg">
+      <q-card bordered class="q-mb-lg board-content">
         <q-card-section>
           <q-item-label class="text-black">{{ board.content }}</q-item-label>
-          <!--          sdaf-->
-          <!-- 게시글 이미지 -->
-          <!--      <div v-if="images.length" class="image-gallery q-mb-lg">-->
-          <!--        <q-item-label class="text-h6">게시글 이미지</q-item-label>-->
-          <!--        <div class="q-mt-md">-->
-          <!--          <img-->
-          <!--            v-for="image in images"-->
-          <!--            :key="image"-->
-          <!--            :src="image"-->
-          <!--            alt="게시글 이미지"-->
-          <!--            class="board-image"-->
-          <!--          />-->
-          <!--        </div>-->
-          <!--      </div>-->
-          <!--          <q-item-label caption class="text-grey">{{ post.createdAt | formatDate }}</q-item-label>-->
         </q-card-section>
       </q-card>
-      <!-- 게시글 이미지 -->
+
       <div v-if="images.length" class="image-gallery q-mb-lg">
-        <q-item-label class="text-h6"></q-item-label>
-        <div class="q-mt-md">
-          <img
-            v-for="image in images"
-            :key="image"
-            :src="image"
-            alt="게시글 이미지"
-            class="board-image"
-          />
+        <q-item-label class="text-h6">🖼️ 이미지</q-item-label>
+        <div class="image-grid">
+          <div v-for="image in images" :key="image" class="image-container">
+            <img :src="image" alt="게시글 이미지" class="board-image" />
+          </div>
         </div>
       </div>
 
       <q-dialog v-model="isDeleteDialogOpen" persistent>
         <q-card>
           <q-card-section>
-            <div class="text-h6">게시글 삭제</div>
+            <div class="text-h6">⚠️ 게시글 삭제</div>
           </q-card-section>
 
-          <q-card-section> 정말로 이 게시글을 삭제하시겠습니까? </q-card-section>
+          <q-card-section>정말로 이 게시글을 삭제하시겠습니까?</q-card-section>
 
           <q-card-actions align="right">
             <q-btn flat label="취소" color="secondary" @click="isDeleteDialogOpen = false" />
@@ -78,17 +53,28 @@
 
       <!-- 댓글 목록 -->
       <div class="q-mt-lg">
-        <div class="text-h6">댓글</div>
+        <div class="text-h6">💬 댓글: {{ comments.length }}</div>
         <q-list bordered class="q-mt-md">
           <q-item v-for="comment in comments" :key="comment.id">
             <q-item-section>
               <q-item-label>{{ comment.content }}</q-item-label>
-              <q-item-label caption>{{ commentLikes[comment.id] || 0 }} Likes</q-item-label>
-              <q-item-label caption>{{ comment.createdAt }} createdAt</q-item-label>
-              <q-item-label caption>{{ comment.lastUpdatedAt }} lastUpdatedAt</q-item-label>
-              {{ comment.memberEmail }}
-              {{ userEmail.memberEmail }}
-              {{ currentUserEmail.value }}
+              <q-item-label caption>작성자: {{ comment.memberNickname }}</q-item-label>
+
+              <q-item-label
+                v-if="comment.memberEmail !== userEmail"
+                caption
+                class="cursor-pointer"
+                style="font-size: 1.5rem; display: flex; align-items: center"
+                @click="toggleCommentLike(comment.id)"
+              >
+                댓글 추천하기: 👍
+                <span style="margin-left: 8px">{{ commentLikes[comment.id] || 0 }}</span>
+              </q-item-label>
+
+              <q-item-label caption>🗓️ 작성: {{ formatDateTime(comment.createdAt) }} </q-item-label>
+              <q-item-label caption
+                >⏰ 수정: {{ formatDateTime(comment.lastUpdatedAt) }}</q-item-label
+              >
               <div v-if="comment.memberEmail === userEmail" class="q-mb-lg text-right">
                 <q-btn
                   label="수정"
@@ -98,16 +84,6 @@
                 />
                 <q-btn label="삭제" color="negative" @click="deleteComment(comment.id)" />
               </div>
-              <q-btn
-                :icon="commentLikesStatus[comment.id] ? '추천완료' : '추천하기'"
-                color="red"
-                flat
-                @click="toggleCommentLike(comment.id)"
-              >
-              </q-btn>
-              <!-- 댓글 좋아요 수 -->
-
-              <!--              <q-item-label caption>{{ comment.author }}</q-item-label>-->
             </q-item-section>
           </q-item>
         </q-list>
@@ -117,8 +93,8 @@
       <q-card bordered class="q-mb-lg">
         <q-card-section>
           <q-form @submit.prevent="submitComment">
-            <q-input v-model="newComment.content" label="댓글 작성" outlined dense />
-            <q-btn label="댓글 작성" color="primary" class="q-mt-md" type="submit" />
+            <q-input v-model="newComment.content" label="✍️ 댓글 작성" outlined dense />
+            <q-btn label="작성하기" color="primary" class="q-mt-md" type="submit" />
           </q-form>
         </q-card-section>
       </q-card>
@@ -127,7 +103,7 @@
       <q-dialog v-model="isEditDialogOpen" persistent>
         <q-card>
           <q-card-section>
-            <div class="text-h6">글 수정</div>
+            <div class="text-h6">📝 글 수정</div>
           </q-card-section>
 
           <q-card-section>
@@ -160,11 +136,12 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
+
       <!-- 댓글 수정 모달 -->
       <q-dialog v-model="isEditCommentDialogOpen" persistent>
         <q-card>
           <q-card-section>
-            <div class="text-h6">댓글 수정</div>
+            <div class="text-h6">📝 댓글 수정</div>
           </q-card-section>
 
           <q-card-section>
@@ -224,17 +201,8 @@ const authStore = useAuthStore();
 const token = localStorage.getItem('token');
 const userEmail = localStorage.getItem('user');
 
-// 현재 로그인된 사용자 이메일
-const currentUserEmail = computed(() => authStore.user?.memberEmail || '');
-console.log(currentUserEmail);
-console.log(currentUserEmail.value);
 // 게시글 작성자와 현재 로그인된 사용자의 이메일 비교
-const isOwnerBoard = computed(() => board.value.memberEmail === currentUserEmail.value);
-console.log(isOwnerBoard);
-console.log(board.value);
-console.log(comments.value);
-console.log(currentUserEmail.value);
-console.log(userEmail);
+const isOwnerBoard = computed(() => board.value.memberEmail === userEmail);
 
 const isDeleteDialogOpen = ref(false);
 
@@ -280,6 +248,11 @@ const fetchHasLikedPost = async () => {
     }
   }
 };
+
+const navigateToUpdateBoard = () => {
+  router.push(`/board/${boardId}/edit`);
+};
+
 const openDeleteDialog = () => {
   isDeleteDialogOpen.value = true;
 };
@@ -367,16 +340,9 @@ const fetchBoardDetail = async () => {
   try {
     const response = await axios.get(`http://localhost:8080/api/v1/board/${boardId}`);
     board.value = response.data;
-    console.log(board.value);
   } catch (error) {
     $q.notify({ type: 'negative', message: '게시글을 불러오는데 실패했습니다.' });
   }
-};
-
-// 게시글 수정 모달 열기
-const editBoard = () => {
-  editedBoard.value = { ...board.value };
-  isEditDialogOpen.value = true;
 };
 
 // 게시글 수정 제출
@@ -439,7 +405,6 @@ const deleteBoard = async () => {
 
 // 댓글 목록 불러오기
 const fetchComments = async () => {
-  console.log(currentUserEmail);
   try {
     if (token != null) {
       const response = await axios.get(`http://localhost:8080/api/v1/comments/${boardId}`);
@@ -549,45 +514,153 @@ onMounted(() => {
   fetchImages();
 });
 
-// 날짜 포맷 필터
-// const formatDate = (value) => {
-//   const options = { year: 'numeric', month: 'short', day: 'numeric' }
-//   return new Date(value).toLocaleDateString(undefined, options)
-// }
+const formatDateTime = (datetime) => {
+  const date = new Date(datetime);
+  return date.toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+};
 </script>
 
 <style scoped>
+/* Board Page General Styling */
 .text-black {
-  color: black;
+  color: #333;
 }
+
 .board-page {
-  background-color: #f5f5f5;
+  background-color: #fafafa;
   min-height: calc(100vh - 60px);
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding-top: 20px;
+  padding-top: 40px;
+  padding-bottom: 40px;
   width: 100%;
 }
 
 .content-container {
-  background-color: white;
+  background-color: #fff;
   padding: 2rem;
-  border-radius: 12px;
-  max-width: 800px;
+  border-radius: 16px;
+  max-width: 900px;
   width: 100%;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.text-h4.board-title {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.q-mb-lg.text-right.board-meta .q-item-label {
+  color: #7f8c8d;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+}
+
+.q-btn {
+  font-weight: 500;
+}
+
+/* Image Gallery Styling */
+.image-gallery {
+  margin-top: 20px;
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.image-container {
+  position: relative;
+  padding-top: 100%; /* Aspect ratio 1:1 */
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .board-image {
-  max-width: 100%;
-  max-height: 300px;
-  margin-bottom: 10px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  transition: transform 0.2s ease;
 }
-.image-gallery {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+
+.board-image:hover {
+  transform: scale(1.05);
+}
+
+.image-gallery .text-h6 {
+  margin-bottom: 10px;
+}
+
+/* Comments Section */
+.q-list {
+  margin-top: 1rem;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  padding: 0.5rem;
+}
+
+.q-item {
+  border-bottom: 1px solid #e0e0e0;
+  padding: 1rem 0;
+}
+
+.q-item-label {
+  font-size: 1rem;
+  color: #34495e;
+}
+
+.q-item-label[caption] {
+  font-size: 0.85rem;
+  color: #95a5a6;
+}
+
+.q-card {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.q-dialog .q-card {
+  max-width: 500px;
+  width: 100%;
+}
+
+.q-btn {
+  border-radius: 8px;
+}
+
+.q-input input {
+  font-size: 1rem;
+  padding: 0.75rem;
+}
+
+.q-input {
+  margin-bottom: 1rem;
+}
+
+.q-card-actions {
+  padding: 1rem 1.5rem;
+}
+
+.board-content {
+  white-space: pre-wrap;
 }
 </style>

@@ -12,6 +12,7 @@
             label="이메일"
             outlined
             dense
+            autocomplete="false"
             :rules="[(val) => /.+@.+\..+/.test(val) || '유효한 이메일을 입력하세요']"
             required
           />
@@ -21,7 +22,8 @@
             type="password"
             outlined
             dense
-            :rules="[(val) => (val && val.length >= 6) || '비밀번호는 최소 6자 이상이어야 합니다']"
+            autocomplete="new-password"
+            :rules="[(val) => (val && val.length >= 8) || '비밀번호는 최소 8자 이상이어야 합니다']"
             required
           />
           <q-input
@@ -33,21 +35,15 @@
             :rules="[(val) => !!val || '비밀번호 확인을 입력하세요', validatePasswordConfirm]"
             required
           />
-          <!--          <q-input-->
-          <!--            v-model="role"-->
-          <!--            label="역할"-->
-          <!--            outlined-->
-          <!--            dense-->
-          <!--            :rules="[(val) => !!val || '역할을 입력하세요']"-->
-          <!--            required-->
-          <!--          />-->
           <q-input
             v-model="nickname"
             label="닉네임"
             outlined
             dense
-            :rules="[(val) => !!val || '닉네임을 입력하세요']"
-            required
+            :rules="[nicknameRules]"
+            :error="!!nicknameError"
+            :error-message="nicknameError"
+            @blur="checkNickname"
           />
           <!-- 연락처 입력 -->
           <q-input
@@ -55,6 +51,7 @@
             label="연락처"
             outlined
             dense
+            placeholder="010-0000-0000"
             :rules="[(val) => /^(010)-\d{3,4}-\d{4}$/.test(val) || '유효한 연락처를 입력하세요']"
             required
           />
@@ -79,34 +76,66 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/authStore'
-import { useQuasar } from 'quasar'
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/authStore';
+import { useQuasar } from 'quasar';
+import axios from 'axios';
 
 // 상태 변수 정의
-const email = ref('')
-const password = ref('')
-const passwordConfirm = ref('') // 비밀번호 확인 필드
-const nickname = ref('')
-const contact = ref('')
+const email = ref('');
+const password = ref('');
+const passwordConfirm = ref(''); // 비밀번호 확인 필드
+const nickname = ref('');
+const contact = ref('');
 // const name = ref('')
 // const gender = ref('MALE') // 기본값은 남성으로 설정
-const role = ref('USER')
-const authStore = useAuthStore()
-const router = useRouter()
-const $q = useQuasar()
+const role = ref('USER');
+const authStore = useAuthStore();
+const router = useRouter();
+const $q = useQuasar();
+const nicknameError = ref(''); // 닉네임 검증 오류 메시지
+
+// 닉네임 중복 검증 함수
+const checkNickname = async () => {
+  try {
+    const response = await axios.get(
+      `http://localhost:8080/api/v1/member/check-nickname?nickname=${nickname.value}`
+    );
+    console.log(response);
+    if (response.data === true) {
+      console.log('fail');
+      nicknameError.value = '이미 사용 중인 닉네임입니다.';
+    } else {
+      nicknameError.value = ''; // 중복이 아니면 오류 메시지 초기화
+    }
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error.response?.data?.message || '닉네임 검증 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// 닉네임 검증 룰
+const nicknameRules = [
+  (val) => !!val || '닉네임을 입력하세요',
+  () => !nicknameError.value || nicknameError.value // 닉네임 검증 오류 메시지 반환
+];
 
 // 비밀번호 확인 검증 함수
 const validatePasswordConfirm = () => {
-  return password.value === passwordConfirm.value || '비밀번호가 일치하지 않습니다'
-}
+  return password.value === passwordConfirm.value || '비밀번호가 일치하지 않습니다';
+};
 
-// 회원가입 처리 함수
 const onSubmit = async () => {
   if (password.value !== passwordConfirm.value) {
-    $q.notify({ type: 'negative', message: '비밀번호가 일치하지 않습니다.' })
-    return
+    $q.notify({ type: 'negative', message: '비밀번호가 일치하지 않습니다.' });
+    return;
+  }
+  if (nicknameError.value) {
+    $q.notify({ type: 'negative', message: nicknameError.value });
+    return;
   }
   try {
     await authStore.register({
@@ -116,21 +145,31 @@ const onSubmit = async () => {
       nickname: nickname.value,
       contact: contact.value,
       role: role.value
-    })
-    $q.notify({ type: 'positive', message: '회원가입에 성공했습니다!' })
-    await router.push('/')
+    });
+    $q.notify({ type: 'positive', message: '회원가입에 성공했습니다!' });
+    await router.push('/');
   } catch (error) {
-    $q.notify({
-      type: 'negative',
-      message: error.response?.data?.message || '회원가입에 실패했습니다.'
-    })
+    if (error.response && error.response.data && error.response.data.errors) {
+      const errorMessages = error.response.data.errors.map((err) => `${err.field}: ${err.reason}`);
+      $q.notify({
+        type: 'negative',
+        message: `회원가입 중 오류 발생: ${errorMessages.join(', ')}`
+      });
+    } else {
+      // 일반적인 에러 처리
+      $q.notify({
+        type: 'negative',
+        message: error.response?.data?.message || '회원가입에 실패했습니다.'
+      });
+    }
+    throw error;
   }
-}
+};
 
 // 로그인 페이지로 이동 함수
 const goToLogin = () => {
-  router.push('/login')
-}
+  router.push('/login');
+};
 </script>
 
 <style scoped>

@@ -1,56 +1,58 @@
 import { defineStore } from 'pinia';
 import authService from '../services/authService';
+import { ref } from 'vue';
 
-// setup 으로 바꾸기
-export const useAuthStore = defineStore('auth', {
-  state: () => ({
-    user: null,
-    token: localStorage.getItem('token') || null
-  }),
-  getters: {
-    isAuthenticated: (state) => !!state.token,
-    getUserEmail: (state) => state.user?.memberEmail || ''
-  },
-  actions: {
-    async register(userData) {
-      try {
-        const response = await authService.register(userData);
-        this.token = response.data.access_token;
-        localStorage.setItem('token', this.token);
-        await this.fetchUser(); // 사용자 정보 가져오기
-      } catch (error) {
-        console.error('회원가입 중 오류 발생:', error);
-      }
-    },
-    async login(credentials) {
-      try {
-        const response = await authService.login(credentials);
-        this.token = response.data.access_token;
-        localStorage.setItem('token', this.token);
+export const useAuthStore = defineStore('auth', () => {
+  const user = ref(null);
+  const token = ref(localStorage.getItem('token') || null);
 
-        await this.fetchUser();
-      } catch (error) {
-        console.error('로그인 중 오류 발생:', error);
-      }
-    },
-    async fetchUser() {
-      if (this.token) {
-        try {
-          const response = await authService.getUser();
-          console.log(response.data);
-          this.user = response.data; // user 정보를 Pinia 상태에 저장
-          localStorage.setItem('user', this.user.memberEmail);
-        } catch (error) {
-          console.error('사용자 정보를 가져오는데 실패했습니다:', error);
-          this.logout();
-        }
-      }
-    },
-    logout() {
-      this.user = null;
-      this.token = null;
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+  const isAuthenticated = () => !!token.value;
+  const getUserEmail = () => user.value?.memberEmail || '';
+
+  const register = async (userData) => {
+    try {
+      const response = await authService.register(userData);
+      token.value = response.data.access_token;
+      localStorage.setItem('token', token.value);
+      await fetchUser(); // Fetch user info after registration
+    } catch (error) {
+      console.error('회원가입 중 오류 발생:', error);
+      throw error; // Propagate error for the caller to handle
     }
-  }
+  };
+
+  const login = async (credentials) => {
+    try {
+      const response = await authService.login(credentials);
+      token.value = response.data.access_token;
+      localStorage.setItem('token', token.value);
+      await fetchUser();
+      return true; // Login successful
+    } catch (error) {
+      console.error('로그인 중 오류 발생:', error);
+      throw error; // Propagate error for the caller to handle
+    }
+  };
+
+  const fetchUser = async () => {
+    if (token.value) {
+      try {
+        const response = await authService.getUser();
+        user.value = response.data; // Save user info in Pinia state
+        localStorage.setItem('user', user.value.memberEmail);
+      } catch (error) {
+        console.error('사용자 정보를 가져오는데 실패했습니다:', error);
+        logout();
+      }
+    }
+  };
+
+  const logout = () => {
+    user.value = null;
+    token.value = null;
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  };
+
+  return { user, token, isAuthenticated, getUserEmail, register, login, fetchUser, logout };
 });
