@@ -28,11 +28,16 @@ const authStore = useAuthStore();
   <q-page class="q-pa-lg home-page">
     <div class="content-container">
       <div class="text-h4 q-mb-lg text-center">Welcome to LHS Portal</div>
-
       <!-- 버튼들 -->
       <div class="button-container q-my-md">
         <q-btn label="게시판" color="primary" class="q-mb-md full-width" @click="goToBoard" />
-        <q-btn label="마이페이지" color="primary" class="q-mb-md full-width" @click="goToMine" />
+        <q-btn
+          v-if="isAuthenticated"
+          label="마이페이지"
+          color="primary"
+          class="q-mb-md full-width"
+          @click="goToMine"
+        />
         <q-btn
           v-if="!isAuthenticated"
           label="회원가입"

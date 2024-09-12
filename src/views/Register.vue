@@ -12,10 +12,14 @@
             label="이메일"
             outlined
             dense
-            autocomplete="false"
-            :rules="[(val) => /.+@.+\..+/.test(val) || '유효한 이메일을 입력하세요']"
+            autocomplete="off"
+            :rules="emailRules"
+            :error="!!emailError"
+            :error-message="emailError"
             required
+            @blur="checkEmail"
           />
+
           <q-input
             v-model="password"
             label="비밀번호"
@@ -45,7 +49,6 @@
             :error-message="nicknameError"
             @blur="checkNickname"
           />
-          <!-- 연락처 입력 -->
           <q-input
             v-model="contact"
             label="연락처"
@@ -55,14 +58,6 @@
             :rules="[(val) => /^(010)-\d{3,4}-\d{4}$/.test(val) || '유효한 연락처를 입력하세요']"
             required
           />
-          <!-- 성별 선택 -->
-          <!--          <q-option-group-->
-          <!--            v-model="gender"-->
-          <!--            label="성별"-->
-          <!--            options="[ { label: '남성', value: 'male' }, { label: '여성', value: 'female' } ]"-->
-          <!--            type="radio"-->
-          <!--            required-->
-          <!--          />-->
           <q-btn label="회원가입" type="submit" color="primary" class="full-width" />
         </q-form>
       </q-card-section>
@@ -82,45 +77,59 @@ import { useAuthStore } from '@/stores/authStore';
 import { useQuasar } from 'quasar';
 import axios from 'axios';
 
-// 상태 변수 정의
 const email = ref('');
 const password = ref('');
-const passwordConfirm = ref(''); // 비밀번호 확인 필드
+const passwordConfirm = ref('');
 const nickname = ref('');
 const contact = ref('');
-// const name = ref('')
-// const gender = ref('MALE') // 기본값은 남성으로 설정
 const role = ref('USER');
 const authStore = useAuthStore();
 const router = useRouter();
 const $q = useQuasar();
 const nicknameError = ref(''); // 닉네임 검증 오류 메시지
+const emailError = ref('');
 
+const emailRules = [
+  (val) => !!val || '이메일을 입력하세요',
+  (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) || '유효한 이메일을 입력하세요',
+  () => !emailError.value || emailError.value
+];
+
+// 이메일 중복 검증 함수
+const checkEmail = async () => {
+  try {
+    const response = await axios.get(
+      `http://localhost:8080/api/v1/member/check-email?email=${email.value}`
+    );
+    if (response.data === true) {
+      emailError.value = '이미 사용 중인 이메일입니다.';
+    } else {
+      emailError.value = ''; // 중복이 아니면 오류 메시지 초기화
+    }
+  } catch (error) {
+    notify('negative', error.response?.data?.message || '이메일 검증 중 오류가 발생했습니다.');
+  }
+};
 // 닉네임 중복 검증 함수
 const checkNickname = async () => {
   try {
     const response = await axios.get(
       `http://localhost:8080/api/v1/member/check-nickname?nickname=${nickname.value}`
     );
-    console.log(response);
     if (response.data === true) {
-      console.log('fail');
       nicknameError.value = '이미 사용 중인 닉네임입니다.';
     } else {
       nicknameError.value = ''; // 중복이 아니면 오류 메시지 초기화
     }
   } catch (error) {
-    $q.notify({
-      type: 'negative',
-      message: error.response?.data?.message || '닉네임 검증 중 오류가 발생했습니다.'
-    });
+    notify('negative', error.response?.data?.message || '닉네임 검증 중 오류가 발생했습니다.');
   }
 };
 
 // 닉네임 검증 룰
 const nicknameRules = [
   (val) => !!val || '닉네임을 입력하세요',
-  () => !nicknameError.value || nicknameError.value // 닉네임 검증 오류 메시지 반환
+  () => !nicknameError.value || nicknameError.value
 ];
 
 // 비밀번호 확인 검증 함수
@@ -130,63 +139,62 @@ const validatePasswordConfirm = () => {
 
 const onSubmit = async () => {
   if (password.value !== passwordConfirm.value) {
-    $q.notify({ type: 'negative', message: '비밀번호가 일치하지 않습니다.' });
+    notify('negative', '비밀번호가 일치하지 않습니다.');
     return;
   }
-  if (nicknameError.value) {
-    $q.notify({ type: 'negative', message: nicknameError.value });
+  if (nicknameError.value || emailError.value) {
+    notify('negative', '유효한 정보를 입력해주세요.');
     return;
   }
   try {
     await authStore.register({
       email: email.value,
       password: password.value,
-      // name: name.value,
       nickname: nickname.value,
       contact: contact.value,
       role: role.value
     });
-    $q.notify({ type: 'positive', message: '회원가입에 성공했습니다!' });
+    notify('positive', '회원가입에 성공했습니다!');
     await router.push('/');
   } catch (error) {
     if (error.response && error.response.data && error.response.data.errors) {
       const errorMessages = error.response.data.errors.map((err) => `${err.field}: ${err.reason}`);
-      $q.notify({
-        type: 'negative',
-        message: `회원가입 중 오류 발생: ${errorMessages.join(', ')}`
-      });
+      notify('negative', `회원가입 중 오류 발생: ${errorMessages.join(', ')}`);
     } else {
-      // 일반적인 에러 처리
-      $q.notify({
-        type: 'negative',
-        message: error.response?.data?.message || '회원가입에 실패했습니다.'
-      });
+      notify('negative', error.response?.data?.message || '회원가입에 실패했습니다.');
     }
     throw error;
   }
 };
 
-// 로그인 페이지로 이동 함수
+const notify = (type, message, position = 'top', icon = null) => {
+  $q.notify({
+    type: type,
+    message: message,
+    position: position,
+    icon: icon
+  });
+};
+
 const goToLogin = () => {
   router.push('/login');
 };
 </script>
 
 <style scoped>
-/* 중앙 정렬 및 배경 색상 */
 .register-layout {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh; /* 화면 전체 높이 사용 */
-  background-color: #f5f5f5; /* 밝은 회색 배경 */
+  height: 100vh;
+  background-color: #f5f5f5;
 }
 
 .register-card {
   width: 100%;
   max-width: 400px;
-  background-color: white; /* 카드 배경은 흰색 */
-  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1); /* 약간의 그림자 추가 */
+  background-color: white;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .full-width {

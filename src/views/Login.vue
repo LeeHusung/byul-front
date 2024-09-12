@@ -87,14 +87,21 @@ const onSubmit = async () => {
 
   try {
     await authStore.login({ email: email.value, password: password.value });
-    $q.notify({ type: 'positive', message: '로그인에 성공했습니다!' });
-    await router.push('/'); // Navigate to homepage after login
+    $q.notify({ type: 'positive', message: '로그인에 성공했습니다!', position: 'top', icon: null });
+
+    localStorage.setItem('userImageUrl', authStore.user.memberImageUrl);
+    // setTimeout(() => {
+    //   window.location.reload(); // 페이지 새로고침
+    // }, 500);
+    await router.push('/'); // 홈 화면으로 이동
   } catch (error) {
     const errorMessage = error.response?.data?.message || '로그인에 실패했습니다.';
     console.log(error);
     $q.notify({
       type: 'negative',
-      message: errorMessage
+      message: errorMessage,
+      position: 'top',
+      icon: null
     });
   }
 };

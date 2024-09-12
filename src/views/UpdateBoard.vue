@@ -4,7 +4,6 @@
       <div class="text-h4 q-mb-lg text-center">게시글 수정</div>
 
       <q-form @submit.prevent="submitUpdateBoard">
-        <!-- Board title -->
         <q-input
           v-model="board.title"
           label="제목"
@@ -15,7 +14,6 @@
           :error-message="validationErrors.title"
         />
 
-        <!-- Board content -->
         <q-input
           v-model="board.content"
           label="내용"
@@ -27,11 +25,9 @@
           :error-message="validationErrors.content"
         />
 
-        <!-- Image management section -->
         <div class="q-mt-lg">
           <div class="text-h6 q-mb-md">이미지 관리</div>
 
-          <!-- Existing images -->
           <q-list bordered class="q-mt-md">
             <q-item v-for="(image, index) in images" :key="index">
               <q-item-section>
@@ -82,7 +78,6 @@ const fetchBoardDetail = async () => {
     const imageResponse = await axios.get(`http://localhost:8080/api/v1/board/${boardId}/images`);
     const imageList = imageResponse.data.imageList;
 
-    // 기존 이미지 URL 저장
     originalImages.value = imageList.map((imageData) => imageData.url);
 
     // 이미지 URL을 사용해 각 이미지를 blob으로 변환하여 저장
@@ -96,7 +91,7 @@ const fetchBoardDetail = async () => {
 
     images.value = await Promise.all(imagePromises);
   } catch (error) {
-    $q.notify({ type: 'negative', message: '게시글 정보를 불러오는데 실패했습니다.' });
+    notify('negative', '게시글 정보를 불러오는데 실패했습니다.');
   }
 };
 
@@ -126,29 +121,28 @@ const deleteImages = async () => {
       }
     }
   } catch (error) {
-    $q.notify({ type: 'negative', message: '이미지 삭제 중 오류가 발생했습니다.' });
+    notify('negative', '이미지 삭제 중 오류가 발생했습니다.');
     throw error;
   }
 };
 
-// 새로 추가한 이미지를 서버에 업로드하는 함수
 const uploadNewImages = async () => {
   if (newImages.value.length > 0) {
     const formData = new FormData();
 
     newImages.value.forEach((file) => {
-      formData.append('images', file); // 'images'는 서버에서 받는 변수명과 일치해야 합니다
+      formData.append('images', file);
     });
 
     try {
       await axios.post(`http://localhost:8080/api/v1/board/${boardId}/image`, formData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'multipart/form-data' // 멀티파트 폼 데이터 전송
+          'Content-Type': 'multipart/form-data'
         }
       });
     } catch (error) {
-      $q.notify({ type: 'negative', message: '이미지 업로드 중 오류가 발생했습니다.' });
+      notify('negative', '이미지 업로드 중 오류가 발생했습니다.');
       throw error;
     }
   }
@@ -182,16 +176,25 @@ const submitUpdateBoard = async () => {
       // 유효성 검사 에러를 보여줌
       const validationErrors = error.response.data.errors;
       validationErrors.forEach((err) => {
-        $q.notify({ type: 'negative', message: `${err.field}: ${err.reason}` });
+        notify('negative', `${err.field}: ${err.reason}`);
       });
     } else {
-      $q.notify({ type: 'negative', message: '게시글 수정 중 오류가 발생했습니다.' });
+      notify('negative', '게시글 수정 중 오류가 발생했습니다.');
     }
   }
 };
 
+const notify = (type, message, position = 'top', icon = null) => {
+  $q.notify({
+    type: type,
+    message: message,
+    position: position,
+    icon: icon
+  });
+};
+
 onMounted(() => {
-  fetchBoardDetail(); // 페이지 로드 시 게시글 상세 정보를 가져옴
+  fetchBoardDetail();
 });
 </script>
 
