@@ -51,6 +51,7 @@
         </div>
       </div>
 
+      <!--      quasar dialog 사용법 찾아보기-->
       <q-dialog v-model="isDeleteDialogOpen" persistent>
         <q-card>
           <q-card-section>
@@ -85,10 +86,10 @@
                 <span style="margin-left: 8px">{{ commentLikes[comment.id] || 0 }}</span>
               </q-item-label>
 
-              <q-item-label caption>🗓️ 작성: {{ formatDateTime(comment.createdAt) }} </q-item-label>
+              <q-item-label caption>🗓️ 작성: {{ formatDateTime(comment.createdAt) }}</q-item-label>
               <q-item-label caption
-                >⏰ 수정: {{ formatDateTime(comment.lastUpdatedAt) }}</q-item-label
-              >
+                >⏰ 수정: {{ formatDateTime(comment.lastUpdatedAt) }}
+              </q-item-label>
               <div v-if="comment.memberEmail === userEmail" class="q-mb-lg text-right">
                 <q-btn
                   label="수정"
@@ -103,7 +104,7 @@
         </q-list>
       </div>
 
-      <!--      <CommentForm :submit-comment="submitComment" @submit="submitComment" />-->
+      <CommentForm :submit-comment="submitComment" @submit="submitComment" />
 
       <!-- 댓글 작성 -->
       <q-card bordered class="q-mb-lg">
@@ -140,11 +141,13 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { Notify, useQuasar } from 'quasar';
+import { useQuasar } from 'quasar';
 import axios from 'axios';
 import EditCommentDialog from '@/components/EditCommentDialog.vue';
 import '@/assets/boarddetail.css';
+import apiClient from '@/services/axios.js';
 import CommentForm from '@/components/CommentForm.vue';
+// import CommentForm from '@/components/CommentForm.vue';
 
 const $q = useQuasar();
 const router = useRouter();
@@ -176,6 +179,8 @@ const openEditCommentDialog = (comment) => {
 const images = ref([]);
 const userImageUrl = computed(() => board.value.memberImageUrl);
 const profileImageUrl = computed(() => {
+  //TODO
+  // 여긴 왜 이렇게?
   return userImageUrl.value
     ? `http://localhost:8080/api/v1/member/image/${userImageUrl.value}`
     : '/default-profile.png';
@@ -183,17 +188,14 @@ const profileImageUrl = computed(() => {
 
 const fetchImages = async () => {
   try {
-    const response = await axios.get(`http://localhost:8080/api/v1/board/${boardId}/images`);
+    const response = await apiClient.get(`board/${boardId}/images`);
     const imageList = response.data.imageList;
 
     const imagePromises = imageList.map(async (imageData) => {
       const fileName = imageData.url;
-      const imageResponse = await axios.get(
-        `http://localhost:8080/api/v1/board/image/${fileName}`,
-        {
-          responseType: 'blob'
-        }
-      );
+      const imageResponse = await apiClient.get(`board/image/${fileName}`, {
+        responseType: 'blob'
+      });
       return URL.createObjectURL(imageResponse.data);
     });
 
@@ -210,9 +212,7 @@ const goBack = () => {
 const fetchHasLikedPost = async () => {
   if (token != null) {
     try {
-      const response = await axios.get(`http://localhost:8080/api/v1/board/${boardId}/hasLiked`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiClient.get(`board/${boardId}/hasLiked`);
       hasLikedPost.value = response.data;
     } catch (error) {
       notify('negative', '좋아요 상태를 확인하는데 실패했습니다.');
@@ -231,21 +231,13 @@ const openDeleteDialog = () => {
 const togglePostLike = async () => {
   try {
     if (hasLikedPost.value) {
-      await axios.delete(`http://localhost:8080/api/v1/board/${boardId}/like`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiClient.delete(`board/${boardId}/like`);
       hasLikedPost.value = false;
       boardLikes.value--;
       await fetchBoardDetail();
       notify('positive', '게시글 추천이 취소되었습니다.');
     } else {
-      await axios.post(
-        `http://localhost:8080/api/v1/board/${boardId}/like`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      await apiClient.post(`board/${boardId}/like`);
       hasLikedPost.value = true;
       boardLikes.value++;
       await fetchBoardDetail();
@@ -266,20 +258,12 @@ const togglePostLike = async () => {
 const toggleCommentLike = async (commentId) => {
   try {
     if (commentLikesStatus.value[commentId]) {
-      await axios.delete(`http://localhost:8080/api/v1/comments/${commentId}/like`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiClient.delete(`comments/${commentId}/like`);
       commentLikesStatus.value[commentId] = false;
       commentLikes.value[commentId]--;
       notify('positive', '댓글 추천이 취소되었습니다.');
     } else {
-      await axios.post(
-        `http://localhost:8080/api/v1/comments/${commentId}/like`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      await apiClient.post(`comments/${commentId}/like`);
       commentLikesStatus.value[commentId] = true;
       commentLikes.value[commentId]++;
       notify('positive', '댓글을 추천하였습니다.');
@@ -295,7 +279,8 @@ const toggleCommentLike = async (commentId) => {
 
 const fetchBoardDetail = async () => {
   try {
-    const response = await axios.get(`http://localhost:8080/api/v1/board/${boardId}`);
+    const response = await apiClient.get(`board/${boardId}`);
+    console.log(response);
     board.value = response.data;
   } catch (error) {
     notify('negative', '게시글을 불러오는데 실패했습니다.');
@@ -304,11 +289,7 @@ const fetchBoardDetail = async () => {
 
 const deleteBoard = async () => {
   try {
-    await axios.delete(`http://localhost:8080/api/v1/board/${boardId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+    await apiClient.delete(`board/${boardId}`);
     notify('positive', '글이 성공적으로 삭제되었습니다!');
     isDeleteDialogOpen.value = false;
     await router.push('/board');
@@ -319,22 +300,15 @@ const deleteBoard = async () => {
 
 const fetchComments = async () => {
   try {
-    const response = await axios.get(`http://localhost:8080/api/v1/comments/${boardId}`);
+    const response = await apiClient.get(`comments/${boardId}`);
     comments.value = response.data.commentList;
 
     if (token != null) {
       for (const comment of response.data.commentList) {
-        const likeResponsea = await axios.get(
-          `http://localhost:8080/api/v1/comments/${comment.id}/hasLiked`,
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
-        );
+        const likeResponsea = await apiClient.get(`comments/${comment.id}/hasLiked`);
         commentLikesStatus.value[comment.id] = likeResponsea.data;
 
-        const likeResponse = await axios.get(
-          `http://localhost:8080/api/v1/comments/${comment.id}/like`
-        );
+        const likeResponse = await axios.get(`comments/${comment.id}/like`);
         commentLikes.value[comment.id] = likeResponse.data;
       }
     }
@@ -350,12 +324,7 @@ const submitComment = async () => {
       boardId: boardId // 필수 데이터 추가
       // userId 또는 다른 필수 데이터가 있을 수 있습니다.
     };
-    await axios.post(`http://localhost:8080/api/v1/comments/${boardId}`, payload, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json' // JSON으로 요청을 보내기 위한 설정
-      }
-    });
+    await apiClient.post(`comments/${boardId}`, payload);
     newComment.value.content = ''; // 댓글 작성 후 초기화
     await fetchComments();
     notify('positive', '댓글이 성공적으로 작성되었습니다!');
@@ -372,16 +341,7 @@ const editedComment = ref({ content: '' });
 
 const submitEditComment = async (updatedComment) => {
   try {
-    await axios.put(
-      `http://localhost:8080/api/v1/comments/${updatedComment.id}`,
-      { content: updatedComment.content },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    await apiClient.put(`comments/${updatedComment.id}`, { content: updatedComment.content });
     notify('positive', '댓글이 성공적으로 수정되었습니다!');
     isEditCommentDialogOpen.value = false;
     await fetchComments();
@@ -392,11 +352,7 @@ const submitEditComment = async (updatedComment) => {
 
 const deleteComment = async (commentId) => {
   try {
-    await axios.delete(`http://localhost:8080/api/v1/comments/${commentId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+    await apiClient.delete(`comments/${commentId}`);
     notify('positive', '댓글이 성공적으로 삭제되었습니다!');
     await fetchComments();
   } catch (error) {

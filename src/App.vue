@@ -1,6 +1,5 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <!-- 헤더: 네비게이션 바 -->
     <q-header elevated class="header">
       <q-toolbar class="q-px-lg q-py-md">
         <q-btn flat round dense class="title" @click="goToHome">LHS</q-btn>
@@ -51,50 +50,29 @@ const goToLogin = () => router.push('/login');
 const goToMine = () => {
   router.push('/my');
 };
-const logout = () => {
-  authStore.logout();
+const logout = async () => {
+  await authStore.logout();
   // 상단바의 프로필 이미지가 기본 이미지로 즉시 변경되도록 설정
-  profileImageUrl.value = '/default-profile.png';
-  router.push('/');
+  // profileImageUrl.value = '/default-profile.png';
+  await router.push('/');
 };
 
-const userImageUrl = computed(() => localStorage.getItem('userImageUrl'));
-const profileImageUrl = computed(() => {
-  // Pinia에 저장된 memberImageUrl이 파일 이름일 경우, 이를 이미지 API 경로로 변환
-  console.log(userImageUrl);
-  return userImageUrl.value
-    ? `http://localhost:8080/api/v1/member/image/${userImageUrl.value}`
-    : '/default-profile.png'; // 기본 이미지 경로
-});
+// const userImageUrl = computed(() => localStorage.getItem('userImageUrl'));
+// const profileImageUrl = computed(() => {
+//   console.log(userImageUrl);
+//   return userImageUrl.value
+//     ? `http://localhost:8080/api/v1/member/image/${userImageUrl.value}`
+//     : '/default-profile.png'; // 기본 이미지 경로
+// });
 
 onMounted(async () => {
-  if (authStore.token) {
-    await authStore.fetchUser();
-  }
+  // if (authStore.token) {
+  //   await authService.fetchUser();
+  // }
 });
 </script>
 
 <style scoped>
-/* Header Styles */
-.q-header {
-  background-color: #1976d2; /* Modern blue color */
-  color: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.q-toolbar {
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.q-btn {
-  color: white;
-  font-weight: 500;
-  text-transform: uppercase;
-  padding: 8px 16px;
-}
-
 .title {
   font-size: 1.5rem;
   font-weight: bold;
@@ -159,30 +137,6 @@ onMounted(async () => {
   margin-bottom: 1.5rem;
   text-align: center;
   font-size: 1.75rem;
-}
-
-/* Pagination */
-.pagination-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  margin-top: 1rem;
-}
-
-.paging {
-  background-color: transparent;
-}
-
-/* Post Info */
-.post-info-container {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 0.5rem;
-}
-
-.post-info {
-  font-size: 0.875rem;
-  color: #666666;
 }
 
 /* Responsive Styles */

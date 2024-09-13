@@ -3,10 +3,23 @@
     <div class="content-container">
       <div class="text-h4 q-mb-lg text-center board-title">게시글 목록</div>
 
-      <!-- 글 작성 버튼 (모달 트리거) -->
+      <!-- 검색 옵션 선택 -->
+      <q-select
+        v-model="searchOption"
+        :options="searchOptions"
+        label="검색 기준 선택"
+        class="q-mb-md"
+      />
+
+      <!-- 검색 입력란 -->
+      <q-input v-model="search.query" placeholder="검색어 입력" class="q-mb-md" />
+
+      <q-btn label="검색" color="primary" class="q-mb-lg" @click="fetchPosts" />
+
       <q-btn label="글 작성" color="primary" class="q-mb-lg post-btn" @click="openDialog" />
 
       <!-- 게시글 목록 -->
+      <!--      vue router에 쿼리파라미터 넣어주는 기능 찾아보기-->
       <q-list bordered class="q-mt-lg post-list">
         <q-item
           v-for="post in posts"
@@ -19,7 +32,6 @@
           <q-item-section>
             <q-item-label class="post-title">{{ post.title }}</q-item-label>
             <div class="post-info-container">
-              <!-- 프로필 이미지 표시 -->
               <q-item-label class="post-info">
                 <div v-if="post.memberImageUrl">
                   <img
@@ -56,6 +68,8 @@
       </div>
 
       <!-- PostDialog 컴포넌트 -->
+      <!--      v-model로 isOpen 한번만 사용-->
+      <!--      컴포넌트 quasar 권장 표기법으로-->
       <PostDialog
         :is-open="isDialogOpen"
         @update:is-open="(val) => (isDialogOpen = val)"
@@ -68,10 +82,10 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-import axios from 'axios';
 import router from '@/router/index.js';
 import PostDialog from '../components/PostCreateDialog.vue';
 import '@/assets/board.css';
+import apiClient from '@/services/axios.js';
 
 const $q = useQuasar();
 const posts = ref([]);
@@ -79,7 +93,15 @@ const currentPage = ref(1);
 const totalPages = ref(1);
 const pageSize = 10;
 const currentPageGroup = ref(1);
-
+// 검색 옵션과 입력값
+const searchOption = ref('allSearch'); // 기본적으로 전체 검색
+const searchOptions = [
+  { label: '전체', value: 'allSearch' },
+  { label: '제목', value: 'title' },
+  { label: '내용', value: 'content' },
+  { label: '작성자', value: 'writer' }
+];
+const search = ref({ query: '' });
 const isDialogOpen = ref(false);
 
 const profileImageUrl = (fileName) => {
@@ -104,9 +126,21 @@ const nextPageGroup = () => {
 
 const fetchPosts = async () => {
   try {
-    const response = await axios.get(`http://localhost:8080/api/v1/board`, {
-      params: { page: currentPage.value - 1, size: pageSize }
-    });
+    const params = {
+      page: currentPage.value - 1,
+      size: pageSize
+    };
+    // 검색 옵션에 따른 파라미터 설정
+    if (searchOption.value === 'title') {
+      params.title = search.value.query;
+    } else if (searchOption.value === 'content') {
+      params.content = search.value.query;
+    } else if (searchOption.value === 'writer') {
+      params.memberNickname = search.value.query;
+    } else if (searchOption.value === 'allSearch') {
+      params.all = search.value.query;
+    }
+    const response = await apiClient.get(`board/search`, { params });
     posts.value = response.data.boardList;
     totalPages.value = Math.ceil(response.data.totalCount / pageSize);
   } catch (error) {
@@ -131,7 +165,7 @@ const submitPost = async (formData) => {
   const token = localStorage.getItem('token');
 
   try {
-    const response = await axios.post(`http://localhost:8080/api/v1/board`, formData, {
+    const response = await apiClient.post(`board`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
         Authorization: `Bearer ${token}`

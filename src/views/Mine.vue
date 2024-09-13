@@ -87,7 +87,6 @@ const nicknameError = ref('');
 const nicknameMessage = ref('');
 const files = ref([]); // 프로필 사진 파일을 관리하는 변수
 
-// 프로필 정보 로드
 const loadProfile = async () => {
   try {
     const response = await axios.get('http://localhost:8080/api/v1/member', {
