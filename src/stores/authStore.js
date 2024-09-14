@@ -22,7 +22,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   const fetchUser = async () => {
     try {
-      user.value = await authService().fetchUser();
+      const response = await authService().fetchUser();
+      console.log(response);
+      user.value = response.data;
     } catch (error) {
       console.error('사용자 정보를 가져오는데 실패했습니다:', error);
       await logout();

@@ -20,7 +20,8 @@ const goToMine = () => {
   router.push('/my');
 };
 
-const isAuthenticated = computed(() => !!authStore.token);
+const isAuthenticated = computed(() => authStore.user != null);
+
 const authStore = useAuthStore();
 </script>
 

@@ -41,8 +41,7 @@ import { useAuthStore } from './stores/authStore';
 const router = useRouter();
 const authStore = useAuthStore();
 
-const isAuthenticated = computed(() => !!authStore.token);
-
+const isAuthenticated = computed(() => authStore.user != null);
 const goToHome = () => router.push('/');
 const goToBoard = () => router.push('/board');
 const goToRegister = () => router.push('/register');
@@ -67,7 +66,7 @@ const logout = async () => {
 
 onMounted(async () => {
   // if (authStore.token) {
-  //   await authService.fetchUser();
+  //   await authService().fetchUser();
   // }
 });
 </script>

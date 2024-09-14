@@ -43,13 +43,14 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
+import useAxios from '@/services/axios.js';
 
 // Props from parent
 const props = defineProps({
   isOpen: Boolean
 });
 
-const emit = defineEmits(['update:isOpen', 'submitPost']);
+const emit = defineEmits(['update:isOpen', 'postCreated']);
 
 const $q = useQuasar();
 
@@ -102,6 +103,41 @@ const handleFileChange = (event) => {
 };
 
 // Submit post
+const submitPost = async () => {
+  if (!validateFields()) return;
+
+  const formData = new FormData();
+  formData.append(
+    'boardCreateRequest',
+    new Blob([JSON.stringify({ title: newPost.value.title, content: newPost.value.content })], {
+      type: 'application/json'
+    })
+  );
+
+  for (let i = 0; i < files.value.length; i++) {
+    formData.append('images', files.value[i]);
+  }
+
+  try {
+    // API 호출하여 게시글 생성
+    const response = await useAxios({
+      type: 'post',
+      param: `board`,
+      body: formData,
+      header: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    $q.notify('positive', '글이 성공적으로 작성되었습니다!');
+    emit('postCreated'); // 부모 컴포넌트에 게시글 생성 이벤트 알림
+    closeDialog();
+  } catch (error) {
+    console.error(error);
+    $q.notify('negative', '글 작성에 실패했습니다.');
+  }
+};
+
+// Validate form fields
 const validateFields = () => {
   titleError.value = '';
   contentError.value = '';
@@ -117,24 +153,6 @@ const validateFields = () => {
   }
 
   return true;
-};
-
-const submitPost = () => {
-  if (!validateFields()) return;
-
-  const formData = new FormData();
-  formData.append(
-    'boardCreateRequest',
-    new Blob([JSON.stringify({ title: newPost.value.title, content: newPost.value.content })], {
-      type: 'application/json'
-    })
-  );
-
-  for (let i = 0; i < files.value.length; i++) {
-    formData.append('images', files.value[i]);
-  }
-
-  emit('submitPost', formData);
 };
 
 const closeDialog = () => {
@@ -155,6 +173,7 @@ watch(
   max-width: 600px;
   border-radius: 12px;
 }
+
 .file-input {
   margin-top: 1rem;
 }
