@@ -4,8 +4,6 @@
       <div class="text-h4 q-mb-lg text-center board-title">{{ board.title }}</div>
 
       <div class="q-mb-lg text-right board-meta">
-        <!-- 프로필 이미지 표시 -->
-        <!--        <img :src="profileImageUrl" alt="프로필 이미지" class="profile-image" />-->
         <q-item-label>
           <img :src="profileImageUrl" alt="프로필 이미지 없음" class="profile-image" />
           작성자: {{ board.memberNickname }}
@@ -51,89 +49,16 @@
         </div>
       </div>
 
-      <!--      quasar dialog 사용법 찾아보기-->
-      <q-dialog v-model="isDeleteDialogOpen" persistent>
-        <q-card>
-          <q-card-section>
-            <div class="text-h6">⚠️ 게시글 삭제</div>
-          </q-card-section>
+      <BoardDeleteDialog ref="deleteBoardDialog" :boardId="boardId" :onDeleteSuccess="handleDeleteSuccess" />
 
-          <q-card-section>정말로 이 게시글을 삭제하시겠습니까?</q-card-section>
-
-          <q-card-actions align="right">
-            <q-btn flat label="취소" color="secondary" @click="isDeleteDialogOpen = false" />
-            <q-btn flat label="삭제" color="primary" @click="deleteBoard" />
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
-
-      <!-- 댓글 목록 -->
-      <div class="q-mt-lg">
-        <div class="text-h6">💬 댓글: {{ comments.length }}</div>
-        <q-list bordered class="q-mt-md">
-          <q-item v-for="comment in comments" :key="comment.id">
-            <q-item-section>
-              <q-item-label>{{ comment.content }}</q-item-label>
-              <q-item-label caption>작성자: {{ comment.memberNickname }}</q-item-label>
-
-              <q-item-label
-                caption
-                class="cursor-pointer"
-                style="font-size: 1rem; display: flex; align-items: center"
-                @click="toggleCommentLike(comment.id)"
-              >
-                👍
-                <span style="margin-left: 8px">{{ commentLikes[comment.id] || 0 }}</span>
-              </q-item-label>
-
-              <q-item-label caption>🗓️ 작성: {{ formatDateTime(comment.createdAt) }}</q-item-label>
-              <q-item-label caption
-                >⏰ 수정: {{ formatDateTime(comment.lastUpdatedAt) }}
-              </q-item-label>
-              <div v-if="comment.memberEmail === userEmail" class="q-mb-lg text-right">
-                <q-btn
-                  label="수정"
-                  color="primary"
-                  class="q-mr-sm"
-                  @click="openEditCommentDialog(comment)"
-                />
-                <q-btn label="삭제" color="negative" @click="deleteComment(comment.id)" />
-              </div>
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </div>
-
-      <CommentForm :submit-comment="submitComment" @submit="submitComment" />
-
-      <!-- 댓글 작성 -->
-      <q-card bordered class="q-mb-lg">
-        <q-card-section>
-          <q-form class="comment-form" @submit.prevent="submitComment">
-            <q-input
-              v-model="newComment.content"
-              label="✍️ 댓글 작성"
-              outlined
-              dense
-              class="comment-input"
-            />
-            <q-btn
-              label="작성하기"
-              color="primary"
-              class="comment-submit-btn q-ml-md"
-              type="submit"
-            />
-          </q-form>
-        </q-card-section>
-      </q-card>
+      <CommentList
+        :boardId="boardId"
+        :userEmail="user.memberEmail"
+        :formatDateTime="formatDateTime"
+      />
 
       <q-btn label="목록으로" color="primary" class="back-btn" icon="list" flat @click="goBack" />
 
-      <EditCommentDialog
-        v-model="isEditCommentDialogOpen"
-        :edited-comment="editedComment"
-        @submit="submitEditComment"
-      />
     </div>
   </q-page>
 </template>
@@ -142,39 +67,29 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
-import axios from 'axios';
-import EditCommentDialog from '@/components/EditCommentDialog.vue';
 import '@/assets/boarddetail.css';
-import apiClient from '@/services/axios.js';
-import CommentForm from '@/components/CommentForm.vue';
-// import CommentForm from '@/components/CommentForm.vue';
+import useAxios from '@/services/axios.js';
+import { useAuthStore } from '@/stores/authStore.js';
+import CommentList from '@/components/CommentList.vue';
+import BoardDeleteDialog from '@/components/BoardDeleteDialog.vue';
 
 const $q = useQuasar();
 const router = useRouter();
 const route = useRoute();
-
+const deleteBoardDialog = ref(null);
 const board = ref({});
-const comments = ref([]);
-const newComment = ref({
-  content: ''
-});
+
 const boardLikes = ref(0);
-const commentLikes = ref({});
-const commentLikesStatus = ref({});
-const boardId = route.params.id;
+const boardId = Number(route.params.id);
 const hasLikedPost = ref(false);
 
+const authStore = useAuthStore();
 const token = localStorage.getItem('token');
-const userEmail = localStorage.getItem('user');
-
-const isOwnerBoard = computed(() => board.value.memberEmail === userEmail);
+const user = authStore.user;
+//TODO
+const isOwnerBoard = computed(() => board.value.memberEmail === user.memberEmail);
 
 const isDeleteDialogOpen = ref(false);
-
-const openEditCommentDialog = (comment) => {
-  editedComment.value = { ...comment };
-  isEditCommentDialogOpen.value = true;
-};
 
 const images = ref([]);
 const userImageUrl = computed(() => board.value.memberImageUrl);
@@ -188,13 +103,18 @@ const profileImageUrl = computed(() => {
 
 const fetchImages = async () => {
   try {
-    const response = await apiClient.get(`board/${boardId}/images`);
+    const response = await useAxios({
+      type: 'get',
+      param: `board/${boardId}/images`
+    });
     const imageList = response.data.imageList;
 
     const imagePromises = imageList.map(async (imageData) => {
       const fileName = imageData.url;
-      const imageResponse = await apiClient.get(`board/image/${fileName}`, {
-        responseType: 'blob'
+      const imageResponse = await useAxios({
+        type: 'get',
+        param: `board/image/${fileName}`,
+        options: { responseType: 'blob' }
       });
       return URL.createObjectURL(imageResponse.data);
     });
@@ -212,7 +132,10 @@ const goBack = () => {
 const fetchHasLikedPost = async () => {
   if (token != null) {
     try {
-      const response = await apiClient.get(`board/${boardId}/hasLiked`);
+      const response = await useAxios({
+        type: 'get',
+        param: `board/${boardId}/hasLiked`
+      });
       hasLikedPost.value = response.data;
     } catch (error) {
       notify('negative', '좋아요 상태를 확인하는데 실패했습니다.');
@@ -225,19 +148,25 @@ const navigateToUpdateBoard = () => {
 };
 
 const openDeleteDialog = () => {
-  isDeleteDialogOpen.value = true;
+  deleteBoardDialog.value.openDialog();
 };
 
 const togglePostLike = async () => {
   try {
     if (hasLikedPost.value) {
-      await apiClient.delete(`board/${boardId}/like`);
+      await useAxios({
+        type: 'delete',
+        param: `board/${boardId}/like`
+      });
       hasLikedPost.value = false;
       boardLikes.value--;
       await fetchBoardDetail();
       notify('positive', '게시글 추천이 취소되었습니다.');
     } else {
-      await apiClient.post(`board/${boardId}/like`);
+      await useAxios({
+        type: 'post',
+        param: `board/${boardId}/like`
+      });
       hasLikedPost.value = true;
       boardLikes.value++;
       await fetchBoardDetail();
@@ -255,109 +184,20 @@ const togglePostLike = async () => {
   }
 };
 
-const toggleCommentLike = async (commentId) => {
-  try {
-    if (commentLikesStatus.value[commentId]) {
-      await apiClient.delete(`comments/${commentId}/like`);
-      commentLikesStatus.value[commentId] = false;
-      commentLikes.value[commentId]--;
-      notify('positive', '댓글 추천이 취소되었습니다.');
-    } else {
-      await apiClient.post(`comments/${commentId}/like`);
-      commentLikesStatus.value[commentId] = true;
-      commentLikes.value[commentId]++;
-      notify('positive', '댓글을 추천하였습니다.');
-    }
-  } catch (error) {
-    if (token == null) {
-      notify('negative', '로그인이 필요한 기능입니다.');
-    } else {
-      notify('negative', error.response?.data?.message || '댓글 추천 처리 중 오류가 발생했습니다.');
-    }
-  }
-};
-
 const fetchBoardDetail = async () => {
   try {
-    const response = await apiClient.get(`board/${boardId}`);
-    console.log(response);
+    const response = await useAxios({
+      type: 'get',
+      param: `board/${boardId}`
+    });
     board.value = response.data;
   } catch (error) {
     notify('negative', '게시글을 불러오는데 실패했습니다.');
   }
 };
 
-const deleteBoard = async () => {
-  try {
-    await apiClient.delete(`board/${boardId}`);
-    notify('positive', '글이 성공적으로 삭제되었습니다!');
-    isDeleteDialogOpen.value = false;
-    await router.push('/board');
-  } catch (error) {
-    notify('negative', error.response?.data?.message || '처리 중 오류가 발생했습니다.');
-  }
-};
-
-const fetchComments = async () => {
-  try {
-    const response = await apiClient.get(`comments/${boardId}`);
-    comments.value = response.data.commentList;
-
-    if (token != null) {
-      for (const comment of response.data.commentList) {
-        const likeResponsea = await apiClient.get(`comments/${comment.id}/hasLiked`);
-        commentLikesStatus.value[comment.id] = likeResponsea.data;
-
-        const likeResponse = await axios.get(`comments/${comment.id}/like`);
-        commentLikes.value[comment.id] = likeResponse.data;
-      }
-    }
-  } catch (error) {
-    notify('negative', '댓글을 불러오는데 실패했습니다.');
-  }
-};
-
-const submitComment = async () => {
-  try {
-    const payload = {
-      content: newComment.value.content,
-      boardId: boardId // 필수 데이터 추가
-      // userId 또는 다른 필수 데이터가 있을 수 있습니다.
-    };
-    await apiClient.post(`comments/${boardId}`, payload);
-    newComment.value.content = ''; // 댓글 작성 후 초기화
-    await fetchComments();
-    notify('positive', '댓글이 성공적으로 작성되었습니다!');
-  } catch (error) {
-    notify(
-      'negative',
-      error.response?.data?.errors[0]?.reason || '댓글 작성 처리 중 오류가 발생했습니다.'
-    );
-  }
-};
-
-const isEditCommentDialogOpen = ref(false);
-const editedComment = ref({ content: '' });
-
-const submitEditComment = async (updatedComment) => {
-  try {
-    await apiClient.put(`comments/${updatedComment.id}`, { content: updatedComment.content });
-    notify('positive', '댓글이 성공적으로 수정되었습니다!');
-    isEditCommentDialogOpen.value = false;
-    await fetchComments();
-  } catch (error) {
-    notify('negative', '댓글 수정에 실패했습니다.');
-  }
-};
-
-const deleteComment = async (commentId) => {
-  try {
-    await apiClient.delete(`comments/${commentId}`);
-    notify('positive', '댓글이 성공적으로 삭제되었습니다!');
-    await fetchComments();
-  } catch (error) {
-    notify('negative', '댓글 삭제에 실패했습니다.');
-  }
+const handleDeleteSuccess = () => {
+  router.push('/board'); // 게시글 삭제 후 목록으로 이동
 };
 
 const notify = (type, message, position = 'top', icon = null) => {
@@ -372,7 +212,6 @@ const notify = (type, message, position = 'top', icon = null) => {
 onMounted(() => {
   fetchBoardDetail();
   fetchHasLikedPost();
-  fetchComments();
   fetchImages();
 });
 
