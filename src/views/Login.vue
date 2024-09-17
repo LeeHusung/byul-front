@@ -30,7 +30,6 @@
         </q-form>
       </q-card-section>
 
-      <!-- 회원가입 버튼 -->
       <q-card-actions align="center" class="q-mt-md">
         <q-btn flat label="회원가입" color="secondary" @click="navigateToSignUp" />
       </q-card-actions>
@@ -100,7 +99,6 @@ const onSubmit = async () => {
   }
 };
 
-// 회원가입 페이지로 이동하는 함수
 const navigateToSignUp = () => {
   router.push('/register');
 };

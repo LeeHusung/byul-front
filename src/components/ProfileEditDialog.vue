@@ -1,4 +1,3 @@
-<!-- ProfileEditDialog.vue -->
 <template>
   <q-dialog v-model="isEditDialogOpen" persistent>
     <q-card class="edit-modal">
@@ -20,12 +19,18 @@
             :error-message="nicknameError"
             @blur="checkNickname"
           />
-          <q-item-label v-if="nicknameMessage" class="text-positive">{{ nicknameMessage }}</q-item-label>
+          <q-item-label v-if="nicknameMessage" class="text-positive">{{
+            nicknameMessage
+          }}</q-item-label>
 
           <!-- 프로필 사진 수정 -->
           <q-item-label class="q-mt-md">프로필 사진</q-item-label>
           <div class="profile-picture-container">
-            <img :src="profilePictureUrl" alt="프로필 사진을 추가해주세요" class="profile-picture" />
+            <img
+              :src="profilePictureUrl"
+              alt="프로필 사진을 추가해주세요"
+              class="profile-picture"
+            />
           </div>
           <input type="file" class="q-mt-md profile-input" @change="onProfilePictureChange" />
         </q-form>
@@ -109,7 +114,7 @@ const onProfilePictureChange = (event) => {
 // 프로필 저장
 const saveProfile = async () => {
   if (nicknameError.value) {
-    notify('negative', nicknameError.value );
+    notify('negative', nicknameError.value);
     return;
   }
 
@@ -138,7 +143,7 @@ const saveProfile = async () => {
     notify('positive', '프로필 정보가 성공적으로 저장되었습니다!');
     closeEditDialog();
   } catch (error) {
-    notify('negative','프로필 저장 중 오류가 발생했습니다.' );
+    notify('negative', '프로필 저장 중 오류가 발생했습니다.');
   }
 };
 

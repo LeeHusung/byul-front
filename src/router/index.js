@@ -9,22 +9,22 @@ import Mine from '@/views/Mine.vue';
 const routes = [
   {
     path: '/',
-    name: 'home',
+    name: 'Home',
     component: Home
   },
   {
     path: '/login',
-    name: 'login',
+    name: 'Login',
     component: Login
   },
   {
     path: '/register',
-    name: 'register',
+    name: 'Register',
     component: Register
   },
   {
     path: '/board',
-    name: 'board',
+    name: 'Board',
     component: Board
   },
   {

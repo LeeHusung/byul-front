@@ -1,10 +1,8 @@
-<!-- MyProfile.vue -->
 <template>
   <q-page class="q-pa-lg profile-page">
     <div class="content-container">
       <div class="text-h4 q-mb-lg text-center">내 정보</div>
 
-      <!-- 프로필 사진 및 정보 -->
       <div class="profile-info">
         <!-- 프로필 사진 -->
         <div class="profile-picture-container">
@@ -23,9 +21,9 @@
       <!-- 프로필 수정 모달 -->
       <ProfileEditDialog
         ref="editDialog"
-        :userEmail="userEmail"
+        :user-email="userEmail"
         :nickname="nickname"
-        :profilePictureUrl="profilePictureUrl"
+        :profile-picture-url="profilePictureUrl"
         @profile-updated="handleProfileUpdated"
       />
     </div>
@@ -69,10 +67,12 @@ const openEditDialog = () => {
   editDialog.value.openDialog();
 };
 
-const handleProfileUpdated = async ({ nickname: newNickname, profilePictureUrl: newProfilePictureUrl }) => {
+const handleProfileUpdated = async ({
+  nickname: newNickname,
+  profilePictureUrl: newProfilePictureUrl
+}) => {
   nickname.value = newNickname;
   profilePictureUrl.value = newProfilePictureUrl;
-  // 변경: window.location.reload() 대신 직접 상태 업데이트
   await authStore.fetchUser();
 };
 

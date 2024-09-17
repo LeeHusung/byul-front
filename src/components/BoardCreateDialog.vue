@@ -72,7 +72,6 @@ const contentRules = [
   (val) => val.length >= 5 || '내용은 최소 5자 이상이어야 합니다.'
 ];
 
-// File handling
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
 
 const handleFileChange = (event) => {
@@ -102,7 +101,6 @@ const handleFileChange = (event) => {
   }
 };
 
-// Submit post
 const submitPost = async () => {
   if (!validateFields()) return;
 
@@ -129,7 +127,7 @@ const submitPost = async () => {
       }
     });
     $q.notify('positive', '글이 성공적으로 작성되었습니다!');
-    emit('postCreated'); // 부모 컴포넌트에 게시글 생성 이벤트 알림
+    emit('postCreated', response.data.id); // 부모 컴포넌트에 게시글 생성 이벤트 알림
     closeDialog();
   } catch (error) {
     console.error(error);
@@ -137,7 +135,6 @@ const submitPost = async () => {
   }
 };
 
-// Validate form fields
 const validateFields = () => {
   titleError.value = '';
   contentError.value = '';

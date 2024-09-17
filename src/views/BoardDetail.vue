@@ -49,16 +49,19 @@
         </div>
       </div>
 
-      <BoardDeleteDialog ref="deleteBoardDialog" :boardId="boardId" :onDeleteSuccess="handleDeleteSuccess" />
+      <BoardDeleteDialog
+        ref="deleteBoardDialog"
+        :board-id="boardId"
+        :on-delete-success="handleDeleteSuccess"
+      />
 
       <CommentList
-        :boardId="boardId"
-        :userEmail="user.memberEmail"
-        :formatDateTime="formatDateTime"
+        :board-id="boardId"
+        :user-email="user.memberEmail"
+        :format-date-time="formatDateTime"
       />
 
       <q-btn label="목록으로" color="primary" class="back-btn" icon="list" flat @click="goBack" />
-
     </div>
   </q-page>
 </template>
@@ -126,7 +129,19 @@ const fetchImages = async () => {
 };
 
 const goBack = () => {
-  router.back();
+  const page = route.query.page || 1; // 이전 페이지 정보를 가져옴
+  const searchOption = route.query.searchOption || 'allSearch'; // 검색 옵션
+  const query = route.query.query || ''; // 검색어
+
+  // 목록 페이지로 이동 시 검색 옵션과 검색어도 함께 전달
+  router.push({
+    name: 'Board',
+    query: {
+      page: page,
+      searchOption: searchOption,
+      query: query
+    }
+  });
 };
 
 const fetchHasLikedPost = async () => {

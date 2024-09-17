@@ -17,42 +17,42 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import useAxios from '@/services/axios.js';
 
-// Props로 검색 옵션들을 받아옵니다.
 const props = defineProps({
   searchOptions: {
     type: Array,
     required: true
+  },
+  initialSearchOption: {
+    type: String,
+    default: 'allSearch'
+  },
+  initialSearchQuery: {
+    type: String,
+    default: ''
   }
 });
 
-// 검색 옵션과 쿼리를 로컬 상태로 관리합니다.
-const localSearchOption = ref('allSearch');
-const localQuery = ref('');
+// 검색 옵션과 쿼리의 초기값 설정
+const localSearchOption = ref(props.initialSearchOption);
+const localQuery = ref(props.initialSearchQuery);
 
-// 부모에게 검색 결과를 전달하기 위한 emit 정의
 const emit = defineEmits(['search-results']);
 
 const performSearch = async () => {
   try {
     const params = {};
-    console.log(localSearchOption);
     if (localSearchOption.value === 'title') {
       params.title = localQuery.value;
-      console.log('title: ' + params.title);
     } else if (localSearchOption.value === 'content') {
       params.content = localQuery.value;
-      console.log('content: ' + params.content);
     } else if (localSearchOption.value === 'writer') {
       params.memberNickname = localQuery.value;
-      console.log('memberNickname: ' + params.memberNickname);
     } else if (localSearchOption.value === 'allSearch') {
       params.all = localQuery.value;
-      console.log('allSearch: ' + params.all);
     }
-    console.log('else:');
 
     // API 요청을 수행하여 검색 결과를 가져옵니다.
     const response = await useAxios({
@@ -61,14 +61,43 @@ const performSearch = async () => {
       params: params
     });
 
-    // 검색 결과를 부모 컴포넌트로 전달합니다.
-    emit('search-results', response.data.boardList);
+    // 검색 옵션과 쿼리를 세션 스토리지에 저장
+    sessionStorage.setItem('searchOption', localSearchOption.value);
+    sessionStorage.setItem('searchQuery', localQuery.value);
+    // 검색 결과 전체를 부모 컴포넌트로 전달합니다.
+    emit('search-results', response.data, localSearchOption.value, localQuery.value);
   } catch (error) {
     console.error('검색 실패:', error);
   }
 };
-</script>
 
-<style scoped>
-/* 필요한 경우 추가 스타일을 정의할 수 있습니다. */
-</style>
+//검색 기록을 계속 검색 창에 남기게 하고 싶었는데, 계속 안됐다. 로그를 찍어보니 BoardSearch가 mount가 먼저돼어서 Board에서 mount할때 들어간 값이 BoardSearch에서는 아무 값도 안나오게됨.
+//watch로 해결.
+//watch란, 반응형 데이터의 변화를 감지하고 그에 대한 특정 작업을 수행할 수 있도록 하는 기능이다.
+//첫 번째 인자는 감시할 반응형 데이터나 계산 속성이다. 함수나 데이터 자체를 전달할 수 있다.
+//두 번째 인자는 데이터가 변경될 때 실행될 함수이다. 첫 번째 인자는 새로운 값, 두 번째 인자는 이전값이다.
+
+//computed()로 하려고 하니 set()할때 props.~~ 가 에러난다. props는 읽기 전용이라 데이터 변경 불가능함.
+
+watch(
+  () => props.initialSearchQuery,
+  (newQuery) => {
+    localQuery.value = newQuery;
+    console.log('updated localQuery:', localQuery.value);
+  }
+);
+
+watch(
+  () => props.initialSearchOption,
+  (newOption) => {
+    localSearchOption.value = newOption;
+    console.log('Updated localSearchOption:', localSearchOption.value);
+  }
+);
+
+onMounted(() => {
+  localSearchOption.value = props.initialSearchOption;
+  localQuery.value = props.initialSearchQuery;
+  console.log(localQuery.value);
+});
+</script>

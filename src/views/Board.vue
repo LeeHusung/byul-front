@@ -3,7 +3,12 @@
     <div class="content-container">
       <div class="text-h4 q-mb-lg text-center board-title">게시글 목록</div>
 
-      <BoardSearch :search-options="searchOptions" @search-results="updatePosts" />
+      <BoardSearch
+        :search-options="searchOptions"
+        :initial-search-option="currentSearchOption"
+        :initial-search-query="currentSearchQuery"
+        @search-results="updatePosts"
+      />
 
       <q-btn label="글 작성" color="primary" class="q-mb-lg post-btn" @click="openDialog" />
 
@@ -11,7 +16,7 @@
       <BoardCreateDialog
         :is-open="isDialogOpen"
         @update:is-open="(val) => (isDialogOpen = val)"
-        @post-created="fetchPosts"
+        @post-created="goToDetail"
       />
 
       <!-- 게시글 목록 -->
@@ -49,10 +54,9 @@
         <q-btn flat icon="이전" :disable="currentPageGroup === 1" @click="previousPageGroup" />
         <q-pagination
           v-model="currentPage"
-          :max="Math.min(currentPageGroup * 10, totalPages)"
-          :min="(currentPageGroup - 1) * 10 + 1"
+          :max="totalPages"
           max-pages="10"
-          @update:model-value="fetchPosts"
+          @update:model-value="pageChanged"
         />
         <q-btn
           flat
@@ -73,6 +77,8 @@ import BoardCreateDialog from '../components/BoardCreateDialog.vue';
 import BoardSearch from '../components/BoardSearch.vue';
 import '@/assets/board.css';
 import useAxios from '@/services/axios.js';
+import { useAuthStore } from '@/stores/authStore.js';
+const user = useAuthStore();
 
 const $q = useQuasar();
 const boards = ref([]);
@@ -88,6 +94,8 @@ const searchOptions = [
   { label: '작성자', value: 'writer' }
 ];
 const isDialogOpen = ref(false);
+const currentSearchOption = ref('allSearch');
+const currentSearchQuery = ref('');
 
 const profileImageUrl = (fileName) => {
   return fileName
@@ -99,6 +107,7 @@ const previousPageGroup = () => {
   if (currentPageGroup.value > 1) {
     currentPageGroup.value--;
     currentPage.value = (currentPageGroup.value - 1) * 10 + 1;
+    fetchPosts(currentSearchOption.value, currentSearchQuery.value);
   }
 };
 
@@ -106,35 +115,75 @@ const nextPageGroup = () => {
   if (currentPageGroup.value * 10 < totalPages.value) {
     currentPageGroup.value++;
     currentPage.value = (currentPageGroup.value - 1) * 10 + 1;
+    fetchPosts(currentSearchOption.value, currentSearchQuery.value);
   }
 };
 
-const updatePosts = (searchResults) => {
-  boards.value = searchResults;
-  //이거 이후에 화면이 검색 결과로 자동으로 바뀌나? posts가 ref()라?
+const updatePosts = (responseData, searchOption, searchQuery) => {
+  boards.value = responseData.boardList;
+  totalPages.value = Math.ceil(responseData.totalCount / pageSize);
+
+  currentSearchOption.value = searchOption;
+  currentSearchQuery.value = searchQuery;
+
+  sessionStorage.setItem('searchOption', searchOption);
+  sessionStorage.setItem('searchQuery', searchQuery);
+  sessionStorage.setItem('currentPage', currentPage.value);
 };
 
-const fetchPosts = async () => {
+const loadSearchState = () => {
+  const savedSearchOption = sessionStorage.getItem('searchOption') || 'allSearch';
+  const savedSearchQuery = sessionStorage.getItem('searchQuery') || '';
+  const savedPage = parseInt(sessionStorage.getItem('currentPage')) || 1;
+
+  currentSearchOption.value = savedSearchOption;
+  currentSearchQuery.value = savedSearchQuery;
+  currentPage.value = savedPage;
+};
+
+const fetchPosts = async (searchOption = 'allSearch', searchQuery = '') => {
   try {
     const params = {
       page: currentPage.value - 1,
       size: pageSize
     };
 
+    if (searchOption === 'title') {
+      params.title = searchQuery;
+    } else if (searchOption === 'content') {
+      params.content = searchQuery;
+    } else if (searchOption === 'writer') {
+      params.memberNickname = searchQuery;
+    } else if (searchOption === 'allSearch') {
+      params.all = searchQuery;
+    }
+
     const response = await useAxios({
       type: 'get',
       param: `board/search`,
       params: params
     });
+
     boards.value = response.data.boardList;
     totalPages.value = Math.ceil(response.data.totalCount / pageSize);
+
+    sessionStorage.setItem('currentPage', currentPage.value);
   } catch (error) {
     notify('negative', '게시글을 불러오는데 실패했습니다.');
   }
 };
 
+const pageChanged = (newPage) => {
+  currentPage.value = newPage;
+  fetchPosts(currentSearchOption.value, currentSearchQuery.value);
+  sessionStorage.setItem('currentPage', currentPage.value);
+};
+
 const goToDetail = (id) => {
-  router.push(`/board/${id}`);
+  router.push({
+    name: 'BoardDetail',
+    params: { id }
+  });
 };
 
 const notify = (type, message, position = 'top', icon = null) => {
@@ -145,9 +194,8 @@ const notify = (type, message, position = 'top', icon = null) => {
     icon: icon
   });
 };
-
 const openDialog = () => {
-  const token = localStorage.getItem('token');
+  const token = user.token;
   if (!token) {
     notify('negative', '로그인이 필요한 기능입니다.');
     router.push({ name: 'login' });
@@ -156,5 +204,8 @@ const openDialog = () => {
   }
 };
 
-onMounted(fetchPosts);
+onMounted(() => {
+  loadSearchState();
+  fetchPosts(currentSearchOption.value, currentSearchQuery.value);
+});
 </script>

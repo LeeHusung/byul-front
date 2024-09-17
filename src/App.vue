@@ -23,6 +23,8 @@
 
     <!-- 라우터 뷰: 페이지가 여기에 표시됨 -->
     <q-page-container class="q-pa-md">
+      <!--      :key="$route.fullPath"를 사용하면 vue는 route.fullPath의 값이 바뀔 때마다 RouterView를-->
+      <!--      강제로 다시 렌더링한다. 근데 이 방법은 spa의 장점을 잃어버리는 듯. 쿼리 파라미터 변경시마다 리로딩하여서 페이지 끊김 발생함. 대안은? -->
       <RouterView />
     </q-page-container>
 

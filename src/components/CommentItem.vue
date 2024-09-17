@@ -15,12 +15,7 @@
       <q-item-label caption>🗓️ 작성: {{ formatDateTime(comment.createdAt) }}</q-item-label>
       <q-item-label caption>⏰ 수정: {{ formatDateTime(comment.lastUpdatedAt) }}</q-item-label>
       <div v-if="comment.memberEmail === userEmail" class="q-mb-lg text-right">
-        <q-btn
-          label="수정"
-          color="primary"
-          class="q-mr-sm"
-          @click="openEditCommentDialog"
-        />
+        <q-btn label="수정" color="primary" class="q-mr-sm" @click="openEditCommentDialog" />
         <q-btn label="삭제" color="negative" @click="deleteComment" />
       </div>
     </q-item-section>
@@ -45,7 +40,7 @@ const props = defineProps({
   comment: Object,
   commentLikes: Object,
   userEmail: String,
-  formatDateTime: Function,
+  formatDateTime: Function
 });
 
 const emit = defineEmits(['refresh-comments']);
