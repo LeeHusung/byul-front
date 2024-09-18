@@ -1,7 +1,7 @@
 <template>
   <q-page class="q-pa-lg board-page">
     <div class="content-container">
-      <div class="text-h4 q-mb-lg text-center board-title">게시글 목록</div>
+      <div class="text-h4 q-mb-lg text-center board-title">게시판</div>
 
       <BoardSearch
         :search-options="searchOptions"
@@ -9,8 +9,6 @@
         :initial-search-query="currentSearchQuery"
         @search-results="updatePosts"
       />
-
-      <q-btn label="글 작성" color="primary" class="q-mb-lg post-btn" @click="openDialog" />
 
       <!-- PostDialog 컴포넌트 -->
       <BoardCreateDialog
@@ -49,6 +47,10 @@
         </q-item>
       </q-list>
 
+      <div class="button-container" style="text-align: right">
+        <q-btn label="글 작성" color="primary" class="q-mb-lg post-btn" @click="openDialog" />
+      </div>
+
       <!-- 페이지네이션 -->
       <div class="pagination-container">
         <q-btn flat icon="이전" :disable="currentPageGroup === 1" @click="previousPageGroup" />
@@ -78,8 +80,9 @@ import BoardSearch from '../components/BoardSearch.vue';
 import '@/assets/board.css';
 import useAxios from '@/services/axios.js';
 import { useAuthStore } from '@/stores/authStore.js';
-const user = useAuthStore();
+import { onBeforeRouteLeave } from 'vue-router';
 
+const user = useAuthStore();
 const $q = useQuasar();
 const boards = ref([]);
 const currentPage = ref(1);
@@ -100,7 +103,7 @@ const currentSearchQuery = ref('');
 const profileImageUrl = (fileName) => {
   return fileName
     ? `http://localhost:8080/api/v1/member/image/${fileName}`
-    : '/default-profile.png'; // 기본 이미지
+    : '/default-profile.png';
 };
 
 const previousPageGroup = () => {
@@ -119,16 +122,11 @@ const nextPageGroup = () => {
   }
 };
 
-const updatePosts = (responseData, searchOption, searchQuery) => {
-  boards.value = responseData.boardList;
-  totalPages.value = Math.ceil(responseData.totalCount / pageSize);
-
+const updatePosts = (searchOption, searchQuery, page = 1) => {
   currentSearchOption.value = searchOption;
   currentSearchQuery.value = searchQuery;
-
-  sessionStorage.setItem('searchOption', searchOption);
-  sessionStorage.setItem('searchQuery', searchQuery);
-  sessionStorage.setItem('currentPage', currentPage.value);
+  currentPage.value = page;
+  fetchPosts(searchOption, searchQuery);
 };
 
 const loadSearchState = () => {
@@ -194,6 +192,7 @@ const notify = (type, message, position = 'top', icon = null) => {
     icon: icon
   });
 };
+
 const openDialog = () => {
   const token = user.token;
   if (!token) {
@@ -203,6 +202,15 @@ const openDialog = () => {
     isDialogOpen.value = true;
   }
 };
+
+onBeforeRouteLeave((to, from, next) => {
+  if (to.name !== 'BoardDetail') {
+    sessionStorage.removeItem('searchOption');
+    sessionStorage.removeItem('searchQuery');
+    sessionStorage.removeItem('currentPage');
+  }
+  next();
+});
 
 onMounted(() => {
   loadSearchState();

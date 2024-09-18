@@ -73,11 +73,9 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-// import { useAuthStore } from '@/stores/authStore';
 import { useQuasar } from 'quasar';
 import axios from 'axios';
 import { authService } from '@/services/authService.js';
-// import authService from '@/services/authService.js';
 
 const email = ref('');
 const password = ref('');
@@ -85,10 +83,9 @@ const passwordConfirm = ref('');
 const nickname = ref('');
 const contact = ref('');
 const role = ref('USER');
-// const authStore = useAuthStore();
 const router = useRouter();
 const $q = useQuasar();
-const nicknameError = ref(''); // 닉네임 검증 오류 메시지
+const nicknameError = ref('');
 const emailError = ref('');
 
 const emailRules = [

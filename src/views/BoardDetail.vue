@@ -49,11 +49,7 @@
         </div>
       </div>
 
-      <BoardDeleteDialog
-        ref="deleteBoardDialog"
-        :board-id="boardId"
-        :on-delete-success="handleDeleteSuccess"
-      />
+      <BoardDeleteDialog ref="deleteBoardDialog" :board-id="boardId" />
 
       <CommentList
         :board-id="boardId"
@@ -91,8 +87,6 @@ const token = localStorage.getItem('token');
 const user = authStore.user;
 //TODO
 const isOwnerBoard = computed(() => board.value.memberEmail === user.memberEmail);
-
-const isDeleteDialogOpen = ref(false);
 
 const images = ref([]);
 const userImageUrl = computed(() => board.value.memberImageUrl);
@@ -209,10 +203,6 @@ const fetchBoardDetail = async () => {
   } catch (error) {
     notify('negative', '게시글을 불러오는데 실패했습니다.');
   }
-};
-
-const handleDeleteSuccess = () => {
-  router.push('/board'); // 게시글 삭제 후 목록으로 이동
 };
 
 const notify = (type, message, position = 'top', icon = null) => {

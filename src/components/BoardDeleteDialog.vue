@@ -20,10 +20,10 @@
 import { ref } from 'vue';
 import { useQuasar } from 'quasar';
 import useAxios from '@/services/axios.js';
+import router from '@/router/index.js';
 
 const props = defineProps({
-  boardId: Number,
-  onDeleteSuccess: Function,
+  boardId: Number
 });
 
 const $q = useQuasar();
@@ -37,7 +37,7 @@ const deleteBoard = async () => {
     });
     $q.notify('positive', '글이 성공적으로 삭제되었습니다!');
     isDialogOpen.value = false;
-    props.onDeleteSuccess(); // 삭제 성공 후 부모 컴포넌트에서 처리할 작업 호출
+    await router.push('/board');
   } catch (error) {
     $q.notify('negative', error.response?.data?.message || '처리 중 오류가 발생했습니다.');
   }
@@ -48,6 +48,6 @@ const openDialog = () => {
 };
 
 defineExpose({
-  openDialog,
+  openDialog
 });
 </script>

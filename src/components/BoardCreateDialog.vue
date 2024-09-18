@@ -12,10 +12,10 @@
             label="제목"
             outlined
             dense
-            required
-            :rules="[titleRules]"
+            :rules="titleRules"
             :error="!!titleError"
             :error-message="titleError"
+            required
           />
           <q-input
             v-model="newPost.content"
@@ -23,82 +23,54 @@
             type="textarea"
             outlined
             dense
-            :rules="[contentRules]"
+            :rules="contentRules"
             :error="!!contentError"
             :error-message="contentError"
             required
           />
           <input type="file" multiple class="file-input" @change="handleFileChange" />
+          <q-btn flat label="취소" color="secondary" @click="closeDialog" />
+          <q-btn flat label="작성" type="submit" color="primary" />
         </q-form>
       </q-card-section>
-
-      <q-card-actions align="right">
-        <q-btn flat label="취소" color="secondary" @click="closeDialog" />
-        <q-btn flat label="작성" color="primary" @click="submitPost" />
-      </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { useQuasar } from 'quasar';
 import useAxios from '@/services/axios.js';
 
-// Props from parent
-const props = defineProps({
-  isOpen: Boolean
-});
-
+const props = defineProps({ isOpen: Boolean });
 const emit = defineEmits(['update:isOpen', 'postCreated']);
 
 const $q = useQuasar();
-
-const isDialogOpen = ref(props.isOpen);
 const newPost = ref({ title: '', content: '' });
 const files = ref([]);
-
-// Form validation rules
 const titleError = ref('');
 const contentError = ref('');
+
 const titleRules = [
   (val) => !!val || '제목은 필수입니다.',
-  (val) => val.length >= 8 || '제목은 최소 8자 이상이어야 합니다.',
-  (val) => val.length <= 20 || '제목은 최대 20자까지 가능합니다.'
+  (val) => (val?.length >= 8 && val.length <= 20) || '제목은 8자 이상, 20자 이하여야 합니다.'
 ];
-
 const contentRules = [
   (val) => !!val || '내용은 필수입니다.',
-  (val) => val.length >= 5 || '내용은 최소 5자 이상이어야 합니다.'
+  (val) => val?.length >= 5 || '내용은 최소 5자 이상이어야 합니다.'
 ];
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
 
 const handleFileChange = (event) => {
-  const selectedFiles = event.target.files;
-  const validFiles = [];
-  let hasInvalidFile = false;
-
-  for (let i = 0; i < selectedFiles.length; i++) {
-    if (selectedFiles[i].size > MAX_FILE_SIZE) {
-      hasInvalidFile = true;
-      $q.notify({
-        type: 'negative',
-        message: `파일 크기는 15MB를 넘을 수 없습니다: ${selectedFiles[i].name}`,
-        position: 'top',
-        icon: null
-      });
-    } else {
-      validFiles.push(selectedFiles[i]);
+  files.value = Array.from(event.target.files).filter((file) => {
+    if (file.size > MAX_FILE_SIZE) {
+      notify('negative', `파일 크기는 15MB를 넘을 수 없습니다: ${file.name}`);
+      return false;
     }
-  }
-
-  if (!hasInvalidFile) {
-    files.value = validFiles;
-  } else {
-    event.target.value = '';
-    files.value = [];
-  }
+    return true;
+  });
+  if (files.value.length === 0) event.target.value = '';
 };
 
 const submitPost = async () => {
@@ -107,31 +79,22 @@ const submitPost = async () => {
   const formData = new FormData();
   formData.append(
     'boardCreateRequest',
-    new Blob([JSON.stringify({ title: newPost.value.title, content: newPost.value.content })], {
-      type: 'application/json'
-    })
+    new Blob([JSON.stringify(newPost.value)], { type: 'application/json' })
   );
-
-  for (let i = 0; i < files.value.length; i++) {
-    formData.append('images', files.value[i]);
-  }
+  files.value.forEach((file) => formData.append('images', file));
 
   try {
-    // API 호출하여 게시글 생성
     const response = await useAxios({
       type: 'post',
       param: `board`,
       body: formData,
-      header: {
-        'Content-Type': 'multipart/form-data'
-      }
+      header: { 'Content-Type': 'multipart/form-data' }
     });
-    $q.notify('positive', '글이 성공적으로 작성되었습니다!');
-    emit('postCreated', response.data.id); // 부모 컴포넌트에 게시글 생성 이벤트 알림
+    notify('positive', '글이 성공적으로 작성되었습니다!');
+    emit('postCreated', response.data.id);
     closeDialog();
   } catch (error) {
-    console.error(error);
-    $q.notify('negative', '글 작성에 실패했습니다.');
+    notify('negative', '글 작성에 실패했습니다.');
   }
 };
 
@@ -139,12 +102,15 @@ const validateFields = () => {
   titleError.value = '';
   contentError.value = '';
 
-  if (!newPost.value.title || newPost.value.title.length < 8 || newPost.value.title.length > 20) {
+  const titleValid = titleRules.every((rule) => rule(newPost.value.title) === true);
+  const contentValid = contentRules.every((rule) => rule(newPost.value.content) === true);
+
+  if (!titleValid) {
     titleError.value = '제목은 8자 이상, 20자 이하여야 합니다.';
     return false;
   }
 
-  if (!newPost.value.content || newPost.value.content.length < 5) {
+  if (!contentValid) {
     contentError.value = '내용은 5자 이상이어야 합니다.';
     return false;
   }
@@ -153,16 +119,22 @@ const validateFields = () => {
 };
 
 const closeDialog = () => {
+  resetForm();
   emit('update:isOpen', false);
 };
 
-// Watch for dialog open/close
-watch(
-  () => props.isOpen,
-  (newVal) => {
-    isDialogOpen.value = newVal;
-  }
-);
+const resetForm = () => {
+  newPost.value = { title: '', content: '' };
+  files.value = [];
+  titleError.value = '';
+  contentError.value = '';
+};
+
+const isDialogOpen = computed(() => props.isOpen);
+
+const notify = (type, message) => {
+  $q.notify({ type, message, position: 'top' });
+};
 </script>
 
 <style scoped>
