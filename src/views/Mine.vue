@@ -21,7 +21,6 @@
       <!-- 프로필 수정 모달 -->
       <ProfileEditDialog
         ref="editDialog"
-        :user-email="userEmail"
         :nickname="nickname"
         :profile-picture-url="profilePictureUrl"
         @profile-updated="handleProfileUpdated"
@@ -35,11 +34,12 @@ import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/authStore';
 import ProfileEditDialog from '@/components/ProfileEditDialog.vue';
 import useAxios from '@/services/axios.js';
-import { useQuasar } from 'quasar';
-import '@/assets/mine.css';
+import '@/assets/css/mine.css';
+// import '@/assets/images';
+import { notify } from '@/util/notify.js';
+// import defaultProfile from '@/assets/images/baseImage.jpg'; // 기본 이미지 가져오기
 
 const authStore = useAuthStore();
-const $q = useQuasar();
 
 const userEmail = ref(authStore.user.memberEmail);
 const nickname = ref(authStore.user.memberNickname);
@@ -53,11 +53,10 @@ const loadProfile = async () => {
       param: `member`
     });
 
-    userEmail.value = response.data.memberEmail;
-    nickname.value = response.data.memberNickname;
+    nickname.value = authStore.user.memberNickname;
     profilePictureUrl.value = response.data.memberImageUrl
-      ? `http://localhost:8080/api/v1/member/image/${response.data.memberImageUrl}`
-      : '/default-profile.png';
+      ? `http://localhost:5173/src/assets/images/${response.data.memberImageUrl}`
+      : `http://localhost:5173/src/assets/images/baseImage.jpg`;
   } catch (error) {
     notify('negative', '프로필 정보를 가져오는데 실패했습니다.');
   }
@@ -73,16 +72,6 @@ const handleProfileUpdated = async ({
 }) => {
   nickname.value = newNickname;
   profilePictureUrl.value = newProfilePictureUrl;
-  await authStore.fetchUser();
-};
-
-const notify = (type, message, position = 'top', icon = null) => {
-  $q.notify({
-    type: type,
-    message: message,
-    position: position,
-    icon: icon
-  });
 };
 
 onMounted(() => {

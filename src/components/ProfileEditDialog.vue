@@ -46,19 +46,16 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useQuasar } from 'quasar';
 import useAxios from '@/services/axios.js';
+import { notify } from '@/util/notify.js';
 
 const props = defineProps({
-  userEmail: String,
   nickname: String,
   profilePictureUrl: String,
-  // authToken: String,
   onProfileUpdated: Function
 });
 
 const emit = defineEmits(['profile-updated']);
-const $q = useQuasar();
 
 const isEditDialogOpen = ref(false);
 const editNickname = ref(props.nickname);
@@ -145,15 +142,6 @@ const saveProfile = async () => {
   } catch (error) {
     notify('negative', '프로필 저장 중 오류가 발생했습니다.');
   }
-};
-
-const notify = (type, message, position = 'top', icon = null) => {
-  $q.notify({
-    type: type,
-    message: message,
-    position: position,
-    icon: icon
-  });
 };
 
 defineExpose({

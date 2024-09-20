@@ -39,13 +39,12 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import { useQuasar } from 'quasar';
 import useAxios from '@/services/axios.js';
+import { notify } from '@/util/notify.js';
 
 const props = defineProps({ isOpen: Boolean });
 const emit = defineEmits(['update:isOpen', 'postCreated']);
 
-const $q = useQuasar();
 const newPost = ref({ title: '', content: '' });
 const files = ref([]);
 const titleError = ref('');
@@ -131,10 +130,6 @@ const resetForm = () => {
 };
 
 const isDialogOpen = computed(() => props.isOpen);
-
-const notify = (type, message) => {
-  $q.notify({ type, message, position: 'top' });
-};
 </script>
 
 <style scoped>

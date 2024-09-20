@@ -10,10 +10,10 @@
           outlined
           dense
           required
-          :error="!!validationErrors.title"
-          :error-message="validationErrors.title"
+          :rules="titleRules"
+          :error="!!titleError"
+          :error-message="titleError"
         />
-
         <q-input
           v-model="board.content"
           label="내용"
@@ -21,12 +21,13 @@
           outlined
           dense
           required
-          :error="!!validationErrors.content"
-          :error-message="validationErrors.content"
+          :rules="contentRules"
+          :error="!!contentError"
+          :error-message="contentError"
         />
 
         <div class="q-mt-lg">
-          <div class="text-h6 q-mb-md">이미지 관리</div>
+          <div class="text-h6 q-mb-md">이미지 수정</div>
 
           <q-list bordered class="q-mt-md">
             <q-item v-for="(image, index) in images" :key="index">
@@ -40,11 +41,9 @@
             </q-item>
           </q-list>
 
-          <!-- Image upload -->
           <q-uploader label="새로운 이미지 추가" accept="image/*" multiple @added="onImageAdded" />
         </div>
 
-        <!-- Submit button -->
         <q-btn label="수정 완료" type="submit" color="primary" class="q-mt-lg" />
       </q-form>
     </div>
@@ -56,6 +55,8 @@ import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
 import axios from 'axios';
+import useAxios from '@/services/axios.js';
+import { notify } from '@/util/notify.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -67,7 +68,18 @@ const images = ref([]);
 const originalImages = ref([]); // 서버에서 받아온 원본 이미지 URL을 저장하는 배열
 const imagesToDelete = ref([]); // 삭제할 이미지 URL을 저장하는 배열
 const newImages = ref([]); // 새로 추가한 이미지를 저장하는 배열
-const validationErrors = ref({});
+
+const titleError = ref('');
+const contentError = ref('');
+
+const titleRules = [
+  (val) => !!val || '제목은 필수입니다.',
+  (val) => (val?.length >= 8 && val.length <= 20) || '제목은 8자 이상, 20자 이하여야 합니다.'
+];
+const contentRules = [
+  (val) => !!val || '내용은 필수입니다.',
+  (val) => val?.length >= 5 || '내용은 최소 5자 이상이어야 합니다.'
+];
 
 // 기존 게시글 및 이미지 정보 가져오기
 const fetchBoardDetail = async () => {
@@ -80,12 +92,12 @@ const fetchBoardDetail = async () => {
 
     originalImages.value = imageList.map((imageData) => imageData.url);
 
-    // 이미지 URL을 사용해 각 이미지를 blob으로 변환하여 저장
     const imagePromises = imageList.map(async (imageData) => {
-      const imageResponse = await axios.get(
-        `http://localhost:8080/api/v1/board/image/${imageData.url}`,
-        { responseType: 'blob' }
-      );
+      const imageResponse = await useAxios({
+        type: 'get',
+        param: `board/image/${imageData.url}`,
+        options: { responseType: 'blob' }
+      });
       return URL.createObjectURL(imageResponse.data); // blob URL 생성
     });
 
@@ -114,9 +126,10 @@ const deleteImages = async () => {
     if (imagesToDelete.value.length > 0) {
       // 각 이미지를 개별적으로 처리 (순차적으로 요청)
       for (const imageUrl of imagesToDelete.value) {
-        await axios.delete(`http://localhost:8080/api/v1/board/${boardId}/image`, {
-          params: { imageUrl },
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        await useAxios({
+          type: 'delete',
+          param: `board/${boardId}/image`,
+          params: { imageUrl }
         });
       }
     }
@@ -135,11 +148,11 @@ const uploadNewImages = async () => {
     });
 
     try {
-      await axios.post(`http://localhost:8080/api/v1/board/${boardId}/image`, formData, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'multipart/form-data'
-        }
+      await useAxios({
+        type: 'post',
+        param: `board/${boardId}/image`,
+        body: formData,
+        header: { 'Content-Type': 'multipart/form-data' }
       });
     } catch (error) {
       notify('negative', '이미지 업로드 중 오류가 발생했습니다.');
@@ -148,32 +161,48 @@ const uploadNewImages = async () => {
   }
 };
 
-// 게시글 수정 함수
+const validateFields = () => {
+  titleError.value = '';
+  contentError.value = '';
+
+  const titleValid = titleRules.every((rule) => rule(board.value.title) === true);
+  const contentValid = contentRules.every((rule) => rule(board.value.content) === true);
+
+  if (!titleValid) {
+    titleError.value = '제목은 8자 이상, 20자 이하여야 합니다.';
+    return false;
+  }
+
+  if (!contentValid) {
+    contentError.value = '내용은 5자 이상이어야 합니다.';
+    return false;
+  }
+  return true;
+};
+
 const submitUpdateBoard = async () => {
+  if (!validateFields()) return;
+
   try {
-    // 삭제할 이미지 처리
     await deleteImages();
 
-    // 새 이미지를 업로드
     await uploadNewImages();
 
-    // 게시글 업데이트 로직
     const boardUpdateRequest = {
       title: board.value.title,
       content: board.value.content
     };
 
-    await axios.put(`http://localhost:8080/api/v1/board/${boardId}`, boardUpdateRequest, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
+    await useAxios({
+      type: 'put',
+      param: `board/${boardId}`,
+      body: boardUpdateRequest
     });
 
     $q.notify({ type: 'positive', message: '게시글이 성공적으로 수정되었습니다!' });
     router.push(`/board/${boardId}`);
   } catch (error) {
     if (error.response && error.response.status === 400 && error.response.data.errors) {
-      // 유효성 검사 에러를 보여줌
       const validationErrors = error.response.data.errors;
       validationErrors.forEach((err) => {
         notify('negative', `${err.field}: ${err.reason}`);
@@ -182,15 +211,6 @@ const submitUpdateBoard = async () => {
       notify('negative', '게시글 수정 중 오류가 발생했습니다.');
     }
   }
-};
-
-const notify = (type, message, position = 'top', icon = null) => {
-  $q.notify({
-    type: type,
-    message: message,
-    position: position,
-    icon: icon
-  });
 };
 
 onMounted(() => {

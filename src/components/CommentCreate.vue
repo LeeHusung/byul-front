@@ -1,4 +1,3 @@
-<!-- components/CommentCreate.vue -->
 <template>
   <q-card bordered class="q-mb-lg">
     <q-card-section>
@@ -9,6 +8,8 @@
           outlined
           dense
           class="comment-input"
+          :error="!!commentError"
+          :error-message="commentError"
         />
         <q-btn label="작성하기" color="primary" class="comment-submit-btn q-ml-md" type="submit" />
       </q-form>
@@ -19,25 +20,39 @@
 <script setup>
 import { ref } from 'vue';
 import useAxios from '@/services/axios.js';
-import { useQuasar } from 'quasar';
+import { notify } from '@/util/notify.js';
 
 const props = defineProps({
   boardId: {
     type: Number,
     required: true
-  },
-  onCommentSubmitted: Function
+  }
 });
 
-const $q = useQuasar();
+const emit = defineEmits(['commentSubmitted']);
 const commentContent = ref('');
+const commentError = ref('');
+const commentRules = [
+  (val) => !!val || '내용은 필수입니다.',
+  (val) => val?.length >= 5 || '내용은 최소 5자 이상이어야 합니다.'
+];
+
+const validateField = () => {
+  commentError.value = '';
+
+  for (let rule of commentRules) {
+    const result = rule(commentContent.value);
+    if (result !== true) {
+      commentError.value = result;
+      return false;
+    }
+  }
+
+  return true;
+};
 
 const submitComment = async () => {
-  if (commentContent.value.trim() === '') {
-    notify('negative', '댓글 내용을 입력해주세요.');
-
-    return;
-  }
+  if (!validateField()) return;
 
   try {
     const payload = {
@@ -53,21 +68,14 @@ const submitComment = async () => {
     commentContent.value = '';
 
     notify('positive', '댓글이 성공적으로 작성되었습니다!');
-    if (props.onCommentSubmitted) {
-      props.onCommentSubmitted();
-    }
+    emit('commentSubmitted');
   } catch (error) {
-    console.log(error);
-    notify('negative', error.response?.data?.message);
+    notify(
+      'negative',
+      error.response?.data?.errors[0]?.reason ||
+        error.response?.data?.message ||
+        '댓글 작성에 실패했습니다.'
+    );
   }
-};
-
-const notify = (type, message, position = 'top', icon = null) => {
-  $q.notify({
-    type: type,
-    message: message,
-    position: position,
-    icon: icon
-  });
 };
 </script>

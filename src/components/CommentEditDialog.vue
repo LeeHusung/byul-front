@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="internalModelValue" persistent>
+  <q-dialog persistent>
     <q-card>
       <q-card-section>
         <div class="text-h6">📝 댓글 수정</div>
@@ -14,6 +14,8 @@
             outlined
             dense
             required
+            :error="!!commentError"
+            :error-message="commentError"
           />
         </q-form>
       </q-card-section>
@@ -27,36 +29,42 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref } from 'vue';
 
 const props = defineProps({
-  modelValue: Boolean,
   editedComment: Object
 });
 
-const emits = defineEmits(['update:modelValue', 'submit']);
-
-const internalModelValue = computed({
-  get: () => props.modelValue,
-  set: (value) => emits('update:modelValue', value)
-});
-
-// 로컬 복사본 생성하여 `v-model`로 사용
+const emits = defineEmits(['closeDialog', 'submit']);
 const localEditedComment = ref({ ...props.editedComment });
 
-watch(
-  () => props.editedComment,
-  (newValue) => {
-    localEditedComment.value = { ...newValue }; // prop이 업데이트될 때 로컬 복사본 업데이트
+const commentError = ref('');
+const commentRules = [
+  (val) => !!val || '내용은 필수입니다.',
+  (val) => val?.length >= 5 || '내용은 최소 5자 이상이어야 합니다.'
+];
+
+const validateField = () => {
+  commentError.value = '';
+
+  for (let rule of commentRules) {
+    const result = rule(localEditedComment.value.content);
+    if (result !== true) {
+      commentError.value = result;
+      return false;
+    }
   }
-);
+
+  return true;
+};
 
 const closeDialog = () => {
-  internalModelValue.value = false;
+  emits('closeDialog');
 };
 
 const submitEditComment = () => {
-  emits('submit', localEditedComment.value); // 수정된 댓글 데이터를 부모로 전달
+  if (!validateField()) return;
+  emits('submit', localEditedComment.value);
   closeDialog();
 };
 </script>

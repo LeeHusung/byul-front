@@ -1,4 +1,3 @@
-<!-- DeleteBoardDialog.vue -->
 <template>
   <q-dialog v-model="isDialogOpen" persistent>
     <q-card>
@@ -18,15 +17,14 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useQuasar } from 'quasar';
 import useAxios from '@/services/axios.js';
 import router from '@/router/index.js';
+import { notify } from '@/util/notify.js';
 
 const props = defineProps({
   boardId: Number
 });
 
-const $q = useQuasar();
 const isDialogOpen = ref(false);
 
 const deleteBoard = async () => {
@@ -35,11 +33,11 @@ const deleteBoard = async () => {
       type: 'delete',
       param: `board/${props.boardId}`
     });
-    $q.notify('positive', '글이 성공적으로 삭제되었습니다!');
+    notify('positive', '글이 성공적으로 삭제되었습니다!');
     isDialogOpen.value = false;
     await router.push('/board');
   } catch (error) {
-    $q.notify('negative', error.response?.data?.message || '처리 중 오류가 발생했습니다.');
+    notify('negative', error.response?.data?.message || '처리 중 오류가 발생했습니다.');
   }
 };
 

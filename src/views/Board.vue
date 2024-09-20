@@ -7,17 +7,15 @@
         :search-options="searchOptions"
         :initial-search-option="currentSearchOption"
         :initial-search-query="currentSearchQuery"
-        @search-results="updatePosts"
+        @search-results="updateBoards"
       />
 
-      <!-- PostDialog 컴포넌트 -->
       <BoardCreateDialog
         :is-open="isDialogOpen"
         @update:is-open="(val) => (isDialogOpen = val)"
         @post-created="goToDetail"
       />
 
-      <!-- 게시글 목록 -->
       <q-list bordered class="q-mt-lg post-list">
         <q-item
           v-for="board in boards"
@@ -73,17 +71,16 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useQuasar } from 'quasar';
 import router from '@/router/index.js';
-import BoardCreateDialog from '../components/BoardCreateDialog.vue';
-import BoardSearch from '../components/BoardSearch.vue';
-import '@/assets/board.css';
+import BoardCreateDialog from '../components/board/BoardCreateDialog.vue';
+import BoardSearch from '../components/board/BoardSearch.vue';
+import '@/assets/css/board.css';
 import useAxios from '@/services/axios.js';
 import { useAuthStore } from '@/stores/authStore.js';
 import { onBeforeRouteLeave } from 'vue-router';
+import { notify } from '@/util/notify.js';
 
 const user = useAuthStore();
-const $q = useQuasar();
 const boards = ref([]);
 const currentPage = ref(1);
 const totalPages = ref(1);
@@ -99,18 +96,28 @@ const searchOptions = [
 const isDialogOpen = ref(false);
 const currentSearchOption = ref('allSearch');
 const currentSearchQuery = ref('');
-
+/**
+ * TODO
+ * URL SRC로 바로 호출하면 백엔드 서버에 2번 호출.
+ * axios로 호출하면 10번 호출. 이미지도 안나옴. 이유는?
+ */
 const profileImageUrl = (fileName) => {
+  console.log(fileName);
   return fileName
     ? `http://localhost:8080/api/v1/member/image/${fileName}`
     : '/default-profile.png';
 };
-
+// const profileImageUrl = async (fileName) => {
+//   return await useAxios({
+//     type: 'get',
+//     param: `member/image/${fileName}`
+//   });
+// };
 const previousPageGroup = () => {
   if (currentPageGroup.value > 1) {
     currentPageGroup.value--;
     currentPage.value = (currentPageGroup.value - 1) * 10 + 1;
-    fetchPosts(currentSearchOption.value, currentSearchQuery.value);
+    fetchBoards(currentSearchOption.value, currentSearchQuery.value);
   }
 };
 
@@ -118,15 +125,15 @@ const nextPageGroup = () => {
   if (currentPageGroup.value * 10 < totalPages.value) {
     currentPageGroup.value++;
     currentPage.value = (currentPageGroup.value - 1) * 10 + 1;
-    fetchPosts(currentSearchOption.value, currentSearchQuery.value);
+    fetchBoards(currentSearchOption.value, currentSearchQuery.value);
   }
 };
 
-const updatePosts = (searchOption, searchQuery, page = 1) => {
+const updateBoards = (searchOption, searchQuery, page = 1) => {
   currentSearchOption.value = searchOption;
   currentSearchQuery.value = searchQuery;
   currentPage.value = page;
-  fetchPosts(searchOption, searchQuery);
+  fetchBoards(searchOption, searchQuery);
 };
 
 const loadSearchState = () => {
@@ -139,7 +146,7 @@ const loadSearchState = () => {
   currentPage.value = savedPage;
 };
 
-const fetchPosts = async (searchOption = 'allSearch', searchQuery = '') => {
+const fetchBoards = async (searchOption = 'allSearch', searchQuery = '') => {
   try {
     const params = {
       page: currentPage.value - 1,
@@ -161,7 +168,7 @@ const fetchPosts = async (searchOption = 'allSearch', searchQuery = '') => {
       param: `board/search`,
       params: params
     });
-
+    console.log(response);
     boards.value = response.data.boardList;
     totalPages.value = Math.ceil(response.data.totalCount / pageSize);
 
@@ -173,7 +180,7 @@ const fetchPosts = async (searchOption = 'allSearch', searchQuery = '') => {
 
 const pageChanged = (newPage) => {
   currentPage.value = newPage;
-  fetchPosts(currentSearchOption.value, currentSearchQuery.value);
+  fetchBoards(currentSearchOption.value, currentSearchQuery.value);
   sessionStorage.setItem('currentPage', currentPage.value);
 };
 
@@ -181,15 +188,6 @@ const goToDetail = (id) => {
   router.push({
     name: 'BoardDetail',
     params: { id }
-  });
-};
-
-const notify = (type, message, position = 'top', icon = null) => {
-  $q.notify({
-    type: type,
-    message: message,
-    position: position,
-    icon: icon
   });
 };
 
@@ -214,6 +212,6 @@ onBeforeRouteLeave((to, from, next) => {
 
 onMounted(() => {
   loadSearchState();
-  fetchPosts(currentSearchOption.value, currentSearchQuery.value);
+  fetchBoards(currentSearchOption.value, currentSearchQuery.value);
 });
 </script>

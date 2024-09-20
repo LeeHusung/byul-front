@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/authStore.js';
 import router from '@/router/index.js';
-import { Notify } from 'quasar';
+import { notify } from '@/util/notify.js';
 
 const apiClient = axios.create({
   baseURL: 'http://localhost:8080/api/v1',
@@ -38,12 +38,7 @@ apiClient.interceptors.response.use(
           console.log(error);
           const authStore = useAuthStore();
           authStore.logout();
-          Notify.create({
-            type: 'negative',
-            icon: null,
-            message: error.response.data.message,
-            position: 'top'
-          });
+          notify('negative', error.response.data.message | '로그인이 필요합니다.');
           router.push('/login').catch(() => {});
           // 이행되지 않는 Promise를 반환하여 Promise Chaining 끊어주기
           return new Promise(() => {});
@@ -56,17 +51,23 @@ apiClient.interceptors.response.use(
   }
 );
 
-// 커스텀 Axios 함수
-const useAxios = ({ type = 'get', param = '', body = {}, header = {}, params = {} }) => {
+const useAxios = ({
+  type = 'get',
+  param = '',
+  body = {},
+  header = {},
+  params = {},
+  options = {}
+}) => {
   switch (type.toLowerCase()) {
     case 'post':
-      return apiClient.post(param, body, { headers: header });
+      return apiClient.post(param, body, { headers: header, ...options });
     case 'get':
-      return apiClient.get(param, { headers: header, params: params });
+      return apiClient.get(param, { headers: header, params: params, ...options });
     case 'put':
-      return apiClient.put(param, body, { headers: header });
+      return apiClient.put(param, body, { headers: header, ...options });
     case 'delete':
-      return apiClient.delete(param, { headers: header });
+      return apiClient.delete(param, { headers: header, params: params, ...options });
     default:
       throw new Error('올바르지 않은 요청 타입입니다.');
   }

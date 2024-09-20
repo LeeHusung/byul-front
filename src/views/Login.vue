@@ -41,41 +41,34 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/authStore';
 import router from '@/router/index.js';
-import { useQuasar } from 'quasar';
+import { notify } from '@/util/notify.js';
 
 const email = ref('');
 const password = ref('');
 const authStore = useAuthStore();
-const $q = useQuasar();
 
 const emailError = ref('');
 const passwordError = ref('');
 
-// Email validation rule using a regular expression
 const emailRule = (val) =>
   !!val.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/) || '유효한 이메일 주소를 입력하세요.';
 
-// Password validation rule to check both required and length >= 8
 const passwordRule = (val) =>
   (!!val && val.length >= 8) || '비밀번호는 최소 8자 이상이어야 합니다.';
 
 const validateForm = () => {
-  // Reset errors
   emailError.value = '';
   passwordError.value = '';
 
-  // Check email format
   if (!email.value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
     emailError.value = '유효한 이메일 주소를 입력하세요.';
     return false;
   }
 
-  // Check if password is entered and has at least 8 characters
   if (!password.value || password.value.length < 8) {
     passwordError.value = '비밀번호는 최소 8자 이상이어야 합니다.';
     return false;
   }
-
   return true;
 };
 
@@ -86,16 +79,11 @@ const onSubmit = async () => {
 
   try {
     await authStore.login({ email: email.value, password: password.value });
-    $q.notify({ type: 'positive', message: '로그인에 성공했습니다!', position: 'top', icon: null });
+    notify('positive', '로그인에 성공했습니다!');
     await router.push('/'); // 홈 화면으로 이동
   } catch (error) {
     const errorMessage = error.response?.data?.message || '로그인에 실패했습니다.';
-    $q.notify({
-      type: 'negative',
-      message: errorMessage,
-      position: 'top',
-      icon: null
-    });
+    notify('negative', errorMessage);
   }
 };
 

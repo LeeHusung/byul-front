@@ -31,6 +31,7 @@
 import { useRouter } from 'vue-router';
 import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from './stores/authStore';
+import { authService } from '@/services/authService.js';
 const routerKey = ref(0);
 const router = useRouter();
 const authStore = useAuthStore();
@@ -72,7 +73,6 @@ onMounted(async () => {
   margin: 0 auto;
 }
 
-/* Responsive Styles */
 @media (max-width: 768px) {
   .q-header,
   .q-footer {

@@ -14,17 +14,10 @@
             class="heart-icon"
             @click="togglePostLike"
           >
-            ❤️
+            ❤
           </span>
           좋아요: {{ board.boardLikesCount }}
         </q-item-label>
-
-        <q-btn
-          color="red"
-          flat
-          :label="hasLikedPost ? '추천완료' : '게시글 추천하기'"
-          @click="togglePostLike"
-        ></q-btn>
         <q-item-label>🗓️ 생성: {{ formatDateTime(board.createdAt) }}</q-item-label>
         <q-item-label>⏰ 수정: {{ formatDateTime(board.lastUpdatedAt) }}</q-item-label>
       </div>
@@ -51,11 +44,7 @@
 
       <BoardDeleteDialog ref="deleteBoardDialog" :board-id="boardId" />
 
-      <CommentList
-        :board-id="boardId"
-        :user-email="user.memberEmail"
-        :format-date-time="formatDateTime"
-      />
+      <CommentList :board-id="boardId" />
 
       <q-btn label="목록으로" color="primary" class="back-btn" icon="list" flat @click="goBack" />
     </div>
@@ -65,14 +54,14 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useQuasar } from 'quasar';
-import '@/assets/boarddetail.css';
+import '@/assets/css/boarddetail.css';
 import useAxios from '@/services/axios.js';
 import { useAuthStore } from '@/stores/authStore.js';
 import CommentList from '@/components/CommentList.vue';
-import BoardDeleteDialog from '@/components/BoardDeleteDialog.vue';
+import BoardDeleteDialog from '@/components/board/BoardDeleteDialog.vue';
+import { notify } from '@/util/notify.js';
+import { formatDateTime } from '@/util/timeFormat.js';
 
-const $q = useQuasar();
 const router = useRouter();
 const route = useRoute();
 const deleteBoardDialog = ref(null);
@@ -83,7 +72,7 @@ const boardId = Number(route.params.id);
 const hasLikedPost = ref(false);
 
 const authStore = useAuthStore();
-const token = localStorage.getItem('token');
+const token = authStore.token;
 const user = authStore.user;
 //TODO
 const isOwnerBoard = computed(() => board.value.memberEmail === user.memberEmail);
@@ -106,17 +95,9 @@ const fetchImages = async () => {
     });
     const imageList = response.data.imageList;
 
-    const imagePromises = imageList.map(async (imageData) => {
-      const fileName = imageData.url;
-      const imageResponse = await useAxios({
-        type: 'get',
-        param: `board/image/${fileName}`,
-        options: { responseType: 'blob' }
-      });
-      return URL.createObjectURL(imageResponse.data);
-    });
-
-    images.value = await Promise.all(imagePromises);
+    images.value = imageList.map(
+      (imageData) => `http://localhost:8080/api/v1/board/image/${imageData.url}`
+    );
   } catch (error) {
     notify('negative', '이미지를 불러오는데 실패했습니다.');
   }
@@ -145,9 +126,10 @@ const fetchHasLikedPost = async () => {
         type: 'get',
         param: `board/${boardId}/hasLiked`
       });
+      console.log(response);
       hasLikedPost.value = response.data;
     } catch (error) {
-      notify('negative', '좋아요 상태를 확인하는데 실패했습니다.');
+      // notify('negative', '좋아요 상태를 확인하는데 실패했습니다.');
     }
   }
 };
@@ -199,19 +181,11 @@ const fetchBoardDetail = async () => {
       type: 'get',
       param: `board/${boardId}`
     });
+    console.log(response);
     board.value = response.data;
   } catch (error) {
     notify('negative', '게시글을 불러오는데 실패했습니다.');
   }
-};
-
-const notify = (type, message, position = 'top', icon = null) => {
-  $q.notify({
-    type: type,
-    message: message,
-    position: position,
-    icon: icon
-  });
 };
 
 onMounted(() => {
@@ -219,16 +193,4 @@ onMounted(() => {
   fetchHasLikedPost();
   fetchImages();
 });
-
-const formatDateTime = (datetime) => {
-  const date = new Date(datetime);
-  return date.toLocaleString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-};
 </script>

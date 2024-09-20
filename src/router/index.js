@@ -40,7 +40,7 @@ const routes = [
   {
     path: '/board/:id/edit',
     name: 'UpdateBoard',
-    component: () => import('@/views/UpdateBoard.vue')
+    component: () => import('@/views/BoardUpdate.vue')
   }
 ];
 

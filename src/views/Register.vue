@@ -19,7 +19,6 @@
             required
             @blur="checkEmail"
           />
-
           <q-input
             v-model="password"
             label="비밀번호"
@@ -125,7 +124,6 @@ const checkNickname = async () => {
   }
 };
 
-// 닉네임 검증 룰
 const nicknameRules = [
   (val) => !!val || '닉네임을 입력하세요',
   () => !nicknameError.value || nicknameError.value

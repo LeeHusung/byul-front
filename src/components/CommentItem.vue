@@ -10,20 +10,20 @@
         @click="toggleCommentLike"
       >
         👍
-        <span style="margin-left: 8px">{{ commentLikes[comment.id] || 0 }}</span>
+        <span style="margin-left: 8px">{{ commentLikes }}</span>
       </q-item-label>
       <q-item-label caption>🗓️ 작성: {{ formatDateTime(comment.createdAt) }}</q-item-label>
       <q-item-label caption>⏰ 수정: {{ formatDateTime(comment.lastUpdatedAt) }}</q-item-label>
-      <div v-if="comment.memberEmail === userEmail" class="q-mb-lg text-right">
+      <div v-if="comment.memberEmail === user.memberEmail" class="q-mb-lg text-right">
         <q-btn label="수정" color="primary" class="q-mr-sm" @click="openEditCommentDialog" />
         <q-btn label="삭제" color="negative" @click="deleteComment" />
       </div>
     </q-item-section>
 
-    <!-- 댓글 수정 다이얼로그 -->
     <CommentEditDialog
       v-model="isEditCommentDialogOpen"
       :edited-comment="editedComment"
+      @close-dialog="closeDialog"
       @submit="submitEditComment"
     />
   </q-item>
@@ -31,46 +31,39 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useQuasar } from 'quasar';
 import useAxios from '@/services/axios.js';
 import CommentEditDialog from '@/components/CommentEditDialog.vue';
+import { useAuthStore } from '@/stores/authStore.js';
+import { notify } from '@/util/notify.js';
+import { formatDateTime } from '@/util/timeFormat.js';
 
-const $q = useQuasar();
 const props = defineProps({
   comment: Object,
-  commentLikes: Object,
-  userEmail: String,
-  formatDateTime: Function
+  commentLikes: Number
 });
 
-const emit = defineEmits(['refresh-comments']);
+const emit = defineEmits(['refresh-comments', 'refresh-comment-likes-count']);
 
 const isEditCommentDialogOpen = ref(false);
 const editedComment = ref({ ...props.comment });
 const commentLikesStatus = ref(false);
-const token = localStorage.getItem('token');
+const authStore = useAuthStore();
+const token = authStore.token;
+const user = authStore.user;
 
-const fetchCommentLikesStatus = async () => {
+const toggleCommentLike = async () => {
   try {
     const likeResponse = await useAxios({
       type: 'get',
       param: `comments/${props.comment.id}/hasLiked`
     });
-    commentLikesStatus.value = likeResponse.data;
-  } catch (error) {
-    console.error('Failed to fetch comment like status:', error);
-  }
-};
-
-const toggleCommentLike = async () => {
-  try {
-    if (commentLikesStatus.value) {
+    if (likeResponse.data === true) {
       await useAxios({
         type: 'delete',
         param: `comments/${props.comment.id}/like`
       });
       commentLikesStatus.value = false;
-      props.commentLikes[props.comment.id]--;
+      emit('refresh-comment-likes-count', props.comment.id, -1);
       notify('positive', '댓글 추천이 취소되었습니다.');
     } else {
       await useAxios({
@@ -78,7 +71,7 @@ const toggleCommentLike = async () => {
         param: `comments/${props.comment.id}/like`
       });
       commentLikesStatus.value = true;
-      props.commentLikes[props.comment.id]++;
+      emit('refresh-comment-likes-count', props.comment.id, 1);
       notify('positive', '댓글을 추천하였습니다.');
     }
   } catch (error) {
@@ -91,6 +84,7 @@ const toggleCommentLike = async () => {
 };
 
 const openEditCommentDialog = () => {
+  console.log(props.comment);
   editedComment.value = { ...props.comment };
   isEditCommentDialogOpen.value = true;
 };
@@ -123,15 +117,8 @@ const deleteComment = async () => {
   }
 };
 
-const notify = (type, message, position = 'top', icon = null) => {
-  $q.notify({
-    type: type,
-    message: message,
-    position: position,
-    icon: icon
-  });
+const closeDialog = async () => {
+  isEditCommentDialogOpen.value = false;
+  editedComment.value = { ...props.comment };
 };
-
-// Fetch the initial like status for the comment
-fetchCommentLikesStatus();
 </script>
