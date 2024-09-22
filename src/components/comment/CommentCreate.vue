@@ -61,7 +61,7 @@ const submitComment = async () => {
 
     await useAxios({
       type: 'post',
-      param: `comments/${props.boardId}`,
+      url: `comments/${props.boardId}`,
       body: payload
     });
 

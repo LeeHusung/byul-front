@@ -1,10 +1,9 @@
 <template>
   <q-page class="q-pa-lg profile-page">
     <div class="content-container">
-      <div class="text-h4 q-mb-lg text-center">내 정보</div>
+      <div class="text-h4 q-mb-lg text-center">마이페이지</div>
 
       <div class="profile-info">
-        <!-- 프로필 사진 -->
         <div class="profile-picture-container">
           <img :src="profilePictureUrl" alt="프로필 사진" class="profile-picture" />
         </div>
@@ -15,15 +14,14 @@
         </div>
       </div>
 
-      <!-- 수정 버튼 -->
       <q-btn label="수정" color="primary" class="q-mt-md full-width-btn" @click="openEditDialog" />
 
-      <!-- 프로필 수정 모달 -->
       <ProfileEditDialog
-        ref="editDialog"
+        v-model="isEditProfileDialogOpen"
         :nickname="nickname"
         :profile-picture-url="profilePictureUrl"
         @profile-updated="handleProfileUpdated"
+        @close-dialog="closeDialog"
       />
     </div>
   </q-page>
@@ -35,35 +33,37 @@ import { useAuthStore } from '@/stores/authStore';
 import ProfileEditDialog from '@/components/ProfileEditDialog.vue';
 import useAxios from '@/services/axios.js';
 import '@/assets/css/mine.css';
-// import '@/assets/images';
 import { notify } from '@/util/notify.js';
-// import defaultProfile from '@/assets/images/baseImage.jpg'; // 기본 이미지 가져오기
 
 const authStore = useAuthStore();
 
 const userEmail = ref(authStore.user.memberEmail);
 const nickname = ref(authStore.user.memberNickname);
 const profilePictureUrl = ref('');
-const editDialog = ref(null);
+const isEditProfileDialogOpen = ref(false);
 
 const loadProfile = async () => {
   try {
     const response = await useAxios({
       type: 'get',
-      param: `member`
+      url: `member`
     });
-
     nickname.value = authStore.user.memberNickname;
+
     profilePictureUrl.value = response.data.memberImageUrl
-      ? `http://localhost:5173/src/assets/images/${response.data.memberImageUrl}`
-      : `http://localhost:5173/src/assets/images/baseImage.jpg`;
+      ? `http://localhost:8080/api/v1/member/image/${response.data.memberImageUrl}`
+      : new URL('@/assets/images/baseImage.jpg', import.meta.url).href;
   } catch (error) {
     notify('negative', '프로필 정보를 가져오는데 실패했습니다.');
   }
 };
 
 const openEditDialog = () => {
-  editDialog.value.openDialog();
+  isEditProfileDialogOpen.value = true;
+};
+
+const closeDialog = async () => {
+  isEditProfileDialogOpen.value = false;
 };
 
 const handleProfileUpdated = async ({
@@ -72,6 +72,7 @@ const handleProfileUpdated = async ({
 }) => {
   nickname.value = newNickname;
   profilePictureUrl.value = newProfilePictureUrl;
+  authStore.user.memberNickname = newNickname;
 };
 
 onMounted(() => {

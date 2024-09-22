@@ -72,9 +72,10 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
 import axios from 'axios';
 import { authService } from '@/services/authService.js';
+import { notify } from '@/util/notify.js';
+import useAxios from '@/services/axios.js';
 
 const email = ref('');
 const password = ref('');
@@ -83,7 +84,6 @@ const nickname = ref('');
 const contact = ref('');
 const role = ref('USER');
 const router = useRouter();
-const $q = useQuasar();
 const nicknameError = ref('');
 const emailError = ref('');
 
@@ -96,9 +96,10 @@ const emailRules = [
 // 이메일 중복 검증 함수
 const checkEmail = async () => {
   try {
-    const response = await axios.get(
-      `http://localhost:8080/api/v1/member/check-email?email=${email.value}`
-    );
+    const response = await useAxios({
+      type: 'get',
+      url: `member/check-email?email=${email.value}`
+    });
     if (response.data === true) {
       emailError.value = '이미 사용 중인 이메일입니다.';
     } else {
@@ -111,9 +112,10 @@ const checkEmail = async () => {
 // 닉네임 중복 검증 함수
 const checkNickname = async () => {
   try {
-    const response = await axios.get(
-      `http://localhost:8080/api/v1/member/check-nickname?nickname=${nickname.value}`
-    );
+    const response = await useAxios({
+      type: 'get',
+      url: `member/check-nickname?nickname=${nickname.value}`
+    });
     if (response.data === true) {
       nicknameError.value = '이미 사용 중인 닉네임입니다.';
     } else {
@@ -129,7 +131,6 @@ const nicknameRules = [
   () => !nicknameError.value || nicknameError.value
 ];
 
-// 비밀번호 확인 검증 함수
 const validatePasswordConfirm = () => {
   return password.value === passwordConfirm.value || '비밀번호가 일치하지 않습니다';
 };
@@ -162,15 +163,6 @@ const onSubmit = async () => {
     }
     throw error;
   }
-};
-
-const notify = (type, message, position = 'top', icon = null) => {
-  $q.notify({
-    type: type,
-    message: message,
-    position: position,
-    icon: icon
-  });
 };
 
 const goToLogin = () => {

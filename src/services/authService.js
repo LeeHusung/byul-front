@@ -6,7 +6,7 @@ export const authService = () => {
       return useAxios({
         type: 'post',
         body: userData,
-        param: `auth/register`
+        url: `auth/register`
       });
     } catch (error) {
       console.error('회원가입 중 오류 발생:', error);
@@ -19,7 +19,7 @@ export const authService = () => {
       return useAxios({
         type: 'post',
         body: credentials,
-        param: `auth/login`
+        url: `auth/login`
       });
     } catch (error) {
       console.error('로그인 중 오류 발생:', error);
@@ -31,7 +31,7 @@ export const authService = () => {
     try {
       return useAxios({
         type: 'get',
-        param: `member`
+        url: `member`
       });
     } catch (error) {
       console.error('사용자 정보를 가져오는데 실패했습니다:', error);

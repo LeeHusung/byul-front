@@ -38,13 +38,12 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import useAxios from '@/services/axios.js';
 import { notify } from '@/util/notify.js';
 
-const props = defineProps({ isOpen: Boolean });
-const emit = defineEmits(['update:isOpen', 'postCreated']);
-
+const emits = defineEmits(['closeDialog', 'postCreated']);
+const isDialogOpen = ref(false);
 const newPost = ref({ title: '', content: '' });
 const files = ref([]);
 const titleError = ref('');
@@ -54,6 +53,7 @@ const titleRules = [
   (val) => !!val || '제목은 필수입니다.',
   (val) => (val?.length >= 8 && val.length <= 20) || '제목은 8자 이상, 20자 이하여야 합니다.'
 ];
+
 const contentRules = [
   (val) => !!val || '내용은 필수입니다.',
   (val) => val?.length >= 5 || '내용은 최소 5자 이상이어야 합니다.'
@@ -85,13 +85,14 @@ const submitPost = async () => {
   try {
     const response = await useAxios({
       type: 'post',
-      param: `board`,
+      url: `board`,
       body: formData,
       header: { 'Content-Type': 'multipart/form-data' }
     });
+    console.log(response);
+    await closeDialog();
+    emits('postCreated', response.data.id);
     notify('positive', '글이 성공적으로 작성되었습니다!');
-    emit('postCreated', response.data.id);
-    closeDialog();
   } catch (error) {
     notify('negative', '글 작성에 실패했습니다.');
   }
@@ -117,11 +118,6 @@ const validateFields = () => {
   return true;
 };
 
-const closeDialog = () => {
-  resetForm();
-  emit('update:isOpen', false);
-};
-
 const resetForm = () => {
   newPost.value = { title: '', content: '' };
   files.value = [];
@@ -129,7 +125,10 @@ const resetForm = () => {
   contentError.value = '';
 };
 
-const isDialogOpen = computed(() => props.isOpen);
+const closeDialog = () => {
+  resetForm();
+  emits('closeDialog');
+};
 </script>
 
 <style scoped>

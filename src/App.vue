@@ -10,7 +10,7 @@
         <q-btn v-if="isAuthenticated" flat round dense label="마이페이지" @click="goToMine" />
         <q-btn v-if="!isAuthenticated" flat round dense label="회원가입" @click="goToRegister" />
         <q-btn v-if="!isAuthenticated" flat round dense label="로그인" @click="goToLogin" />
-        <q-btn v-if="isAuthenticated" flat round dense label="로그아웃" @click="logout" />
+        <q-btn v-if="isAuthenticated" flat round dense label="로그아웃" @click="confirmLogout" />
       </q-toolbar>
     </q-header>
 
@@ -31,7 +31,6 @@
 import { useRouter } from 'vue-router';
 import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from './stores/authStore';
-import { authService } from '@/services/authService.js';
 const routerKey = ref(0);
 const router = useRouter();
 const authStore = useAuthStore();
@@ -49,6 +48,13 @@ const goToRegister = () => router.push('/register');
 const goToLogin = () => router.push('/login');
 const goToMine = () => {
   router.push('/my');
+};
+
+const confirmLogout = async () => {
+  const userConfirmed = window.confirm('로그아웃 하시겠습니까?');
+  if (userConfirmed) {
+    await logout();
+  }
 };
 const logout = async () => {
   await authStore.logout();
@@ -71,30 +77,5 @@ onMounted(async () => {
 .q-footer div {
   max-width: 1200px;
   margin: 0 auto;
-}
-
-@media (max-width: 768px) {
-  .q-header,
-  .q-footer {
-    padding: 0 1rem;
-  }
-
-  .q-btn {
-    font-size: 0.875rem;
-  }
-
-  .profile-image-nav {
-    width: 30px;
-    height: 30px;
-  }
-
-  .q-toolbar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .q-page-container {
-    padding: 0.5rem;
-  }
 }
 </style>

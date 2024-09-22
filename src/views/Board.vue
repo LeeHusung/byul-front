@@ -11,8 +11,8 @@
       />
 
       <BoardCreateDialog
-        :is-open="isDialogOpen"
-        @update:is-open="(val) => (isDialogOpen = val)"
+        v-model="isDialogOpen"
+        @close-dialog="closeDialog"
         @post-created="goToDetail"
       />
 
@@ -29,7 +29,7 @@
             <q-item-label class="post-title">{{ board.title }}</q-item-label>
             <div class="post-info-container">
               <q-item-label class="post-info">
-                <div v-if="board.memberImageUrl">
+                <div>
                   <img
                     :src="profileImageUrl(board.memberImageUrl)"
                     alt="프로필 이미지 없음"
@@ -49,20 +49,12 @@
         <q-btn label="글 작성" color="primary" class="q-mb-lg post-btn" @click="openDialog" />
       </div>
 
-      <!-- 페이지네이션 -->
       <div class="pagination-container">
-        <q-btn flat icon="이전" :disable="currentPageGroup === 1" @click="previousPageGroup" />
         <q-pagination
           v-model="currentPage"
           :max="totalPages"
           max-pages="10"
           @update:model-value="pageChanged"
-        />
-        <q-btn
-          flat
-          icon="다음"
-          :disable="currentPageGroup * 10 >= totalPages"
-          @click="nextPageGroup"
         />
       </div>
     </div>
@@ -85,7 +77,6 @@ const boards = ref([]);
 const currentPage = ref(1);
 const totalPages = ref(1);
 const pageSize = 10;
-const currentPageGroup = ref(1);
 
 const searchOptions = [
   { label: '전체', value: 'allSearch' },
@@ -96,36 +87,12 @@ const searchOptions = [
 const isDialogOpen = ref(false);
 const currentSearchOption = ref('allSearch');
 const currentSearchQuery = ref('');
-/**
- * TODO
- * URL SRC로 바로 호출하면 백엔드 서버에 2번 호출.
- * axios로 호출하면 10번 호출. 이미지도 안나옴. 이유는?
- */
-const profileImageUrl = (fileName) => {
-  console.log(fileName);
-  return fileName
-    ? `http://localhost:8080/api/v1/member/image/${fileName}`
-    : '/default-profile.png';
-};
-// const profileImageUrl = async (fileName) => {
-//   return await useAxios({
-//     type: 'get',
-//     param: `member/image/${fileName}`
-//   });
-// };
-const previousPageGroup = () => {
-  if (currentPageGroup.value > 1) {
-    currentPageGroup.value--;
-    currentPage.value = (currentPageGroup.value - 1) * 10 + 1;
-    fetchBoards(currentSearchOption.value, currentSearchQuery.value);
-  }
-};
 
-const nextPageGroup = () => {
-  if (currentPageGroup.value * 10 < totalPages.value) {
-    currentPageGroup.value++;
-    currentPage.value = (currentPageGroup.value - 1) * 10 + 1;
-    fetchBoards(currentSearchOption.value, currentSearchQuery.value);
+const profileImageUrl = (imageUrl) => {
+  if (imageUrl == null) {
+    return new URL('@/assets/images/baseImage.jpg', import.meta.url).href;
+  } else {
+    return `http://localhost:8080/api/v1/member/image/${imageUrl}`;
   }
 };
 
@@ -149,8 +116,7 @@ const loadSearchState = () => {
 const fetchBoards = async (searchOption = 'allSearch', searchQuery = '') => {
   try {
     const params = {
-      page: currentPage.value - 1,
-      size: pageSize
+      page: currentPage.value - 1
     };
 
     if (searchOption === 'title') {
@@ -165,7 +131,7 @@ const fetchBoards = async (searchOption = 'allSearch', searchQuery = '') => {
 
     const response = await useAxios({
       type: 'get',
-      param: `board/search`,
+      url: `board/search`,
       params: params
     });
     console.log(response);
@@ -185,6 +151,7 @@ const pageChanged = (newPage) => {
 };
 
 const goToDetail = (id) => {
+  console.log(id);
   router.push({
     name: 'BoardDetail',
     params: { id }
@@ -192,13 +159,15 @@ const goToDetail = (id) => {
 };
 
 const openDialog = () => {
-  const token = user.token;
-  if (!token) {
+  if (!user) {
     notify('negative', '로그인이 필요한 기능입니다.');
     router.push({ name: 'login' });
   } else {
     isDialogOpen.value = true;
   }
+};
+const closeDialog = () => {
+  isDialogOpen.value = false;
 };
 
 onBeforeRouteLeave((to, from, next) => {

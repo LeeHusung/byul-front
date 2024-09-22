@@ -32,13 +32,13 @@ apiClient.interceptors.response.use(
     return response;
   },
   function (error) {
-    if (error.response && error.response.status) {
+    if (error.status && error.response && error.response.status) {
       switch (error.response.status) {
         case 401: {
           console.log(error);
           const authStore = useAuthStore();
           authStore.logout();
-          notify('negative', error.response.data.message | '로그인이 필요합니다.');
+          notify('negative', '로그인이 필요합니다.');
           router.push('/login').catch(() => {});
           // 이행되지 않는 Promise를 반환하여 Promise Chaining 끊어주기
           return new Promise(() => {});
@@ -53,7 +53,7 @@ apiClient.interceptors.response.use(
 
 const useAxios = ({
   type = 'get',
-  param = '',
+  url = '',
   body = {},
   header = {},
   params = {},
@@ -61,13 +61,13 @@ const useAxios = ({
 }) => {
   switch (type.toLowerCase()) {
     case 'post':
-      return apiClient.post(param, body, { headers: header, ...options });
+      return apiClient.post(url, body, { headers: header, ...options });
     case 'get':
-      return apiClient.get(param, { headers: header, params: params, ...options });
+      return apiClient.get(url, { headers: header, params: params, ...options });
     case 'put':
-      return apiClient.put(param, body, { headers: header, ...options });
+      return apiClient.put(url, body, { headers: header, ...options });
     case 'delete':
-      return apiClient.delete(param, { headers: header, params: params, ...options });
+      return apiClient.delete(url, { headers: header, params: params, ...options });
     default:
       throw new Error('올바르지 않은 요청 타입입니다.');
   }

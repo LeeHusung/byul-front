@@ -95,7 +95,7 @@ const fetchBoardDetail = async () => {
     const imagePromises = imageList.map(async (imageData) => {
       const imageResponse = await useAxios({
         type: 'get',
-        param: `board/image/${imageData.url}`,
+        url: `board/image/${imageData.url}`,
         options: { responseType: 'blob' }
       });
       return URL.createObjectURL(imageResponse.data); // blob URL 생성
@@ -128,7 +128,7 @@ const deleteImages = async () => {
       for (const imageUrl of imagesToDelete.value) {
         await useAxios({
           type: 'delete',
-          param: `board/${boardId}/image`,
+          url: `board/${boardId}/image`,
           params: { imageUrl }
         });
       }
@@ -150,7 +150,7 @@ const uploadNewImages = async () => {
     try {
       await useAxios({
         type: 'post',
-        param: `board/${boardId}/image`,
+        url: `board/${boardId}/image`,
         body: formData,
         header: { 'Content-Type': 'multipart/form-data' }
       });
@@ -195,18 +195,14 @@ const submitUpdateBoard = async () => {
 
     await useAxios({
       type: 'put',
-      param: `board/${boardId}`,
+      url: `board/${boardId}`,
       body: boardUpdateRequest
     });
-
-    $q.notify({ type: 'positive', message: '게시글이 성공적으로 수정되었습니다!' });
-    router.push(`/board/${boardId}`);
+    notify('positive', '게시글이 성공적으로 수정되었습니다!');
+    await router.push(`/board/${boardId}`);
   } catch (error) {
-    if (error.response && error.response.status === 400 && error.response.data.errors) {
-      const validationErrors = error.response.data.errors;
-      validationErrors.forEach((err) => {
-        notify('negative', `${err.field}: ${err.reason}`);
-      });
+    if (error.response) {
+      notify('negative', `${error.response.data.message || error.response.data.errors[0]}`);
     } else {
       notify('negative', '게시글 수정 중 오류가 발생했습니다.');
     }

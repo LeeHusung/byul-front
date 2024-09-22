@@ -6,7 +6,7 @@
       </q-card-section>
 
       <q-card-section>
-        <q-form class="q-gutter-md" @submit.prevent="submitEditComment">
+        <q-form class="q-gutter-md" @submit.prevent="submitEditComment(localEditedComment)">
           <q-input
             v-model="localEditedComment.content"
             label="댓글 내용"
@@ -17,19 +17,18 @@
             :error="!!commentError"
             :error-message="commentError"
           />
+          <q-btn flat label="취소" color="secondary" @click="closeDialog" />
+          <q-btn flat label="수정" type="submit" color="primary" />
         </q-form>
       </q-card-section>
-
-      <q-card-actions align="right">
-        <q-btn flat label="취소" color="secondary" @click="closeDialog" />
-        <q-btn flat label="수정" color="primary" @click="submitEditComment" />
-      </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
 
 <script setup>
 import { ref } from 'vue';
+import useAxios from '@/services/axios.js';
+import { notify } from '@/util/notify.js';
 
 const props = defineProps({
   editedComment: Object
@@ -62,9 +61,21 @@ const closeDialog = () => {
   emits('closeDialog');
 };
 
-const submitEditComment = () => {
+const submitEditComment = async (updatedComment) => {
   if (!validateField()) return;
-  emits('submit', localEditedComment.value);
-  closeDialog();
+
+  try {
+    await useAxios({
+      type: 'put',
+      url: `comments/${updatedComment.id}`,
+      body: { content: updatedComment.content }
+    });
+    notify('positive', '댓글이 성공적으로 수정되었습니다!');
+    await emits('submit');
+
+    closeDialog();
+  } catch (error) {
+    notify('negative', '댓글 수정에 실패했습니다.');
+  }
 };
 </script>

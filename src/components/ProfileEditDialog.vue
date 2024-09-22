@@ -1,13 +1,12 @@
 <template>
-  <q-dialog v-model="isEditDialogOpen" persistent>
+  <q-dialog v-model="isEditDialogOpen" v-bind="$attrs" persistent>
     <q-card class="edit-modal">
       <q-card-section>
         <div class="text-h6">내 정보 수정</div>
       </q-card-section>
 
       <q-card-section>
-        <q-form class="q-gutter-md" @submit.prevent="saveProfile">
-          <!-- 닉네임 수정 -->
+        <q-form class="q-gutter-md" @submit="saveProfile">
           <q-input
             v-model="editNickname"
             label="닉네임"
@@ -23,7 +22,6 @@
             nicknameMessage
           }}</q-item-label>
 
-          <!-- 프로필 사진 수정 -->
           <q-item-label class="q-mt-md">프로필 사진</q-item-label>
           <div class="profile-picture-container">
             <img
@@ -51,11 +49,10 @@ import { notify } from '@/util/notify.js';
 
 const props = defineProps({
   nickname: String,
-  profilePictureUrl: String,
-  onProfileUpdated: Function
+  profilePictureUrl: String
 });
 
-const emit = defineEmits(['profile-updated']);
+const emits = defineEmits(['profile-updated', 'closeDialog']);
 
 const isEditDialogOpen = ref(false);
 const editNickname = ref(props.nickname);
@@ -64,22 +61,15 @@ const nicknameMessage = ref('');
 const profilePictureUrl = ref(props.profilePictureUrl);
 const files = ref([]);
 
-const openDialog = () => {
-  isEditDialogOpen.value = true;
-  editNickname.value = props.nickname;
-  profilePictureUrl.value = props.profilePictureUrl;
-};
-
 const closeEditDialog = () => {
-  isEditDialogOpen.value = false;
+  emits('closeDialog');
 };
 
-// 닉네임 중복 검사
 const checkNickname = async () => {
   try {
     const response = await useAxios({
       type: 'get',
-      param: `member/check-nickname?nickname=${editNickname.value}`
+      url: `member/check-nickname?nickname=${editNickname.value}`
     });
     if (response.data === true) {
       nicknameError.value = '이미 사용 중인 닉네임입니다.';
@@ -94,13 +84,11 @@ const checkNickname = async () => {
   }
 };
 
-// 닉네임 검증 규칙
 const nicknameRules = [
   (val) => !!val || '닉네임을 입력하세요',
   () => !nicknameError.value || nicknameError.value
 ];
 
-// 프로필 사진 변경
 const onProfilePictureChange = (event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -108,7 +96,6 @@ const onProfilePictureChange = (event) => {
   files.value = [file];
 };
 
-// 프로필 저장
 const saveProfile = async () => {
   if (nicknameError.value) {
     notify('negative', nicknameError.value);
@@ -125,26 +112,22 @@ const saveProfile = async () => {
   try {
     const response = await useAxios({
       type: 'put',
-      param: `member/profile`,
+      url: `member/profile`,
       body: formData,
       header: {
         'Content-Type': 'multipart/form-data'
       }
     });
 
-    emit('profile-updated', {
+    emits('profile-updated', {
       nickname: editNickname.value,
       profilePictureUrl: `http://localhost:8080/api/v1/member/image/${response.data.memberImageUrl}`
     });
 
-    notify('positive', '프로필 정보가 성공적으로 저장되었습니다!');
     closeEditDialog();
+    notify('positive', '프로필 정보가 성공적으로 저장되었습니다!');
   } catch (error) {
     notify('negative', '프로필 저장 중 오류가 발생했습니다.');
   }
 };
-
-defineExpose({
-  openDialog
-});
 </script>

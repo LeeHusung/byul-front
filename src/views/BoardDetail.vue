@@ -19,7 +19,9 @@
           좋아요: {{ board.boardLikesCount }}
         </q-item-label>
         <q-item-label>🗓️ 생성: {{ formatDateTime(board.createdAt) }}</q-item-label>
-        <q-item-label>⏰ 수정: {{ formatDateTime(board.lastUpdatedAt) }}</q-item-label>
+        <q-item-label v-if="board.createdAt !== board.lastUpdatedAt"
+          >⏰ 수정: {{ formatDateTime(board.lastUpdatedAt) }}</q-item-label
+        >
       </div>
 
       <div v-if="isOwnerBoard" class="q-mb-lg text-right board-actions">
@@ -42,11 +44,15 @@
         </div>
       </div>
 
-      <BoardDeleteDialog ref="deleteBoardDialog" :board-id="boardId" />
+      <BoardDeleteDialog
+        v-model="isDeleteDialogOpen"
+        :board-id="boardId"
+        @close-dialog="closeDialog"
+      />
 
       <CommentList :board-id="boardId" />
 
-      <q-btn label="목록으로" color="primary" class="back-btn" icon="list" flat @click="goBack" />
+      <q-btn label="목록으로" color="primary" class="back-btn" flat @click="goBack" />
     </div>
   </q-page>
 </template>
@@ -57,14 +63,13 @@ import { useRouter, useRoute } from 'vue-router';
 import '@/assets/css/boarddetail.css';
 import useAxios from '@/services/axios.js';
 import { useAuthStore } from '@/stores/authStore.js';
-import CommentList from '@/components/CommentList.vue';
+import CommentList from '@/components/comment/CommentList.vue';
 import BoardDeleteDialog from '@/components/board/BoardDeleteDialog.vue';
 import { notify } from '@/util/notify.js';
 import { formatDateTime } from '@/util/timeFormat.js';
 
 const router = useRouter();
 const route = useRoute();
-const deleteBoardDialog = ref(null);
 const board = ref({});
 
 const boardLikes = ref(0);
@@ -74,8 +79,14 @@ const hasLikedPost = ref(false);
 const authStore = useAuthStore();
 const token = authStore.token;
 const user = authStore.user;
-//TODO
-const isOwnerBoard = computed(() => board.value.memberEmail === user.memberEmail);
+console.log(user);
+
+const isOwnerBoard = computed(() => {
+  if (user == null) {
+    return false;
+  }
+  return board.value.memberEmail === user.memberEmail;
+});
 
 const images = ref([]);
 const userImageUrl = computed(() => board.value.memberImageUrl);
@@ -84,14 +95,14 @@ const profileImageUrl = computed(() => {
   // 여긴 왜 이렇게?
   return userImageUrl.value
     ? `http://localhost:8080/api/v1/member/image/${userImageUrl.value}`
-    : '/default-profile.png';
+    : new URL('@/assets/images/baseImage.jpg', import.meta.url).href;
 });
 
 const fetchImages = async () => {
   try {
     const response = await useAxios({
       type: 'get',
-      param: `board/${boardId}/images`
+      url: `board/${boardId}/images`
     });
     const imageList = response.data.imageList;
 
@@ -124,12 +135,12 @@ const fetchHasLikedPost = async () => {
     try {
       const response = await useAxios({
         type: 'get',
-        param: `board/${boardId}/hasLiked`
+        url: `board/${boardId}/hasLiked`
       });
       console.log(response);
       hasLikedPost.value = response.data;
     } catch (error) {
-      // notify('negative', '좋아요 상태를 확인하는데 실패했습니다.');
+      notify('negative', '좋아요 상태를 확인하는데 실패했습니다.');
     }
   }
 };
@@ -138,8 +149,14 @@ const navigateToUpdateBoard = () => {
   router.push(`/board/${boardId}/edit`);
 };
 
+const isDeleteDialogOpen = ref(false);
+
 const openDeleteDialog = () => {
-  deleteBoardDialog.value.openDialog();
+  isDeleteDialogOpen.value = true;
+};
+
+const closeDialog = () => {
+  isDeleteDialogOpen.value = false;
 };
 
 const togglePostLike = async () => {
@@ -147,7 +164,7 @@ const togglePostLike = async () => {
     if (hasLikedPost.value) {
       await useAxios({
         type: 'delete',
-        param: `board/${boardId}/like`
+        url: `board/${boardId}/like`
       });
       hasLikedPost.value = false;
       boardLikes.value--;
@@ -156,7 +173,7 @@ const togglePostLike = async () => {
     } else {
       await useAxios({
         type: 'post',
-        param: `board/${boardId}/like`
+        url: `board/${boardId}/like`
       });
       hasLikedPost.value = true;
       boardLikes.value++;
@@ -179,7 +196,7 @@ const fetchBoardDetail = async () => {
   try {
     const response = await useAxios({
       type: 'get',
-      param: `board/${boardId}`
+      url: `board/${boardId}`
     });
     console.log(response);
     board.value = response.data;
