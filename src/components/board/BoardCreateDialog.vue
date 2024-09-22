@@ -40,7 +40,7 @@
 <script setup>
 import { ref } from 'vue';
 import useAxios from '@/services/axios.js';
-import { notify } from '@/util/notify.js';
+import { notify, notifyError } from '@/util/notify.js';
 
 const emits = defineEmits(['closeDialog', 'postCreated']);
 const isDialogOpen = ref(false);
@@ -89,12 +89,12 @@ const submitPost = async () => {
       body: formData,
       header: { 'Content-Type': 'multipart/form-data' }
     });
-    console.log(response);
     await closeDialog();
     emits('postCreated', response.data.id);
     notify('positive', '글이 성공적으로 작성되었습니다!');
   } catch (error) {
-    notify('negative', '글 작성에 실패했습니다.');
+    console.log(error);
+    notifyError(error);
   }
 };
 

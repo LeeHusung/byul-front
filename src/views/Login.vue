@@ -41,7 +41,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/authStore';
 import router from '@/router/index.js';
-import { notify } from '@/util/notify.js';
+import { notify, notifyError } from '@/util/notify.js';
 
 const email = ref('');
 const password = ref('');
@@ -82,6 +82,8 @@ const onSubmit = async () => {
     notify('positive', '로그인에 성공했습니다!');
     await router.push('/'); // 홈 화면으로 이동
   } catch (error) {
+    notifyError(error);
+
     const errorMessage = error.response?.data?.message || '로그인에 실패했습니다.';
     notify('negative', errorMessage);
   }

@@ -45,7 +45,7 @@
 <script setup>
 import { ref } from 'vue';
 import useAxios from '@/services/axios.js';
-import { notify } from '@/util/notify.js';
+import { notify, notifyError } from '@/util/notify.js';
 
 const props = defineProps({
   nickname: String,
@@ -127,7 +127,7 @@ const saveProfile = async () => {
     closeEditDialog();
     notify('positive', '프로필 정보가 성공적으로 저장되었습니다!');
   } catch (error) {
-    notify('negative', '프로필 저장 중 오류가 발생했습니다.');
+    notifyError(error);
   }
 };
 </script>

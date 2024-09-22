@@ -19,7 +19,7 @@
 import { ref } from 'vue';
 import useAxios from '@/services/axios.js';
 import router from '@/router/index.js';
-import { notify } from '@/util/notify.js';
+import { notify, notifyError } from '@/util/notify.js';
 
 const props = defineProps({
   boardId: Number
@@ -38,7 +38,7 @@ const deleteBoard = async () => {
     closeDialog();
     await router.push('/board');
   } catch (error) {
-    notify('negative', error.response?.data?.message || '처리 중 오류가 발생했습니다.');
+    notifyError(error);
   }
 };
 

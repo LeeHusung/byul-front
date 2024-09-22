@@ -1,4 +1,5 @@
 import useAxios from './axios';
+import { notifyError } from '@/util/notify.js';
 
 export const authService = () => {
   const register = (userData) => {
@@ -9,7 +10,7 @@ export const authService = () => {
         url: `auth/register`
       });
     } catch (error) {
-      console.error('회원가입 중 오류 발생:', error);
+      notifyError(error);
       throw error;
     }
   };
@@ -22,7 +23,7 @@ export const authService = () => {
         url: `auth/login`
       });
     } catch (error) {
-      console.error('로그인 중 오류 발생:', error);
+      notifyError(error);
       throw error;
     }
   };
@@ -34,7 +35,7 @@ export const authService = () => {
         url: `member`
       });
     } catch (error) {
-      console.error('사용자 정보를 가져오는데 실패했습니다:', error);
+      notifyError(error);
     }
   };
   return { register, login, fetchUser };

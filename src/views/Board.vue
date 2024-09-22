@@ -70,7 +70,7 @@ import '@/assets/css/board.css';
 import useAxios from '@/services/axios.js';
 import { useAuthStore } from '@/stores/authStore.js';
 import { onBeforeRouteLeave } from 'vue-router';
-import { notify } from '@/util/notify.js';
+import { notify, notifyError } from '@/util/notify.js';
 
 const user = useAuthStore();
 const boards = ref([]);
@@ -140,7 +140,7 @@ const fetchBoards = async (searchOption = 'allSearch', searchQuery = '') => {
 
     sessionStorage.setItem('currentPage', currentPage.value);
   } catch (error) {
-    notify('negative', '게시글을 불러오는데 실패했습니다.');
+    notifyError(error);
   }
 };
 

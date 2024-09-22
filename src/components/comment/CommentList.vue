@@ -29,7 +29,7 @@ import { ref, onMounted } from 'vue';
 import useAxios from '@/services/axios.js';
 import CommentItem from '@/components/comment/CommentItem.vue';
 import CommentCreate from '@/components/comment/CommentCreate.vue';
-import { notify } from '@/util/notify.js';
+import { notify, notifyError } from '@/util/notify.js';
 
 const props = defineProps({
   boardId: Number
@@ -61,7 +61,7 @@ const fetchComments = async () => {
       commentLikes.value[comment.id] = comment.commentsLikesCount;
     });
   } catch (error) {
-    notify('negative', '댓글을 불러오는데 실패했습니다.');
+    notifyError(error);
   }
 };
 

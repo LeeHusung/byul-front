@@ -20,7 +20,7 @@
 <script setup>
 import { ref } from 'vue';
 import useAxios from '@/services/axios.js';
-import { notify } from '@/util/notify.js';
+import { notify, notifyError } from '@/util/notify.js';
 
 const props = defineProps({
   boardId: {
@@ -70,12 +70,7 @@ const submitComment = async () => {
     notify('positive', '댓글이 성공적으로 작성되었습니다!');
     emit('commentSubmitted');
   } catch (error) {
-    notify(
-      'negative',
-      error.response?.data?.errors[0]?.reason ||
-        error.response?.data?.message ||
-        '댓글 작성에 실패했습니다.'
-    );
+    notifyError(error);
   }
 };
 </script>

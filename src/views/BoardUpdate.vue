@@ -53,14 +53,12 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useQuasar } from 'quasar';
 import axios from 'axios';
 import useAxios from '@/services/axios.js';
-import { notify } from '@/util/notify.js';
+import { notify, notifyError } from '@/util/notify.js';
 
 const route = useRoute();
 const router = useRouter();
-const $q = useQuasar();
 
 const boardId = route.params.id;
 const board = ref({ title: '', content: '' });
@@ -103,7 +101,7 @@ const fetchBoardDetail = async () => {
 
     images.value = await Promise.all(imagePromises);
   } catch (error) {
-    notify('negative', '게시글 정보를 불러오는데 실패했습니다.');
+    notifyError(error);
   }
 };
 
@@ -124,7 +122,6 @@ const markImageForDeletion = (index) => {
 const deleteImages = async () => {
   try {
     if (imagesToDelete.value.length > 0) {
-      // 각 이미지를 개별적으로 처리 (순차적으로 요청)
       for (const imageUrl of imagesToDelete.value) {
         await useAxios({
           type: 'delete',
@@ -134,7 +131,7 @@ const deleteImages = async () => {
       }
     }
   } catch (error) {
-    notify('negative', '이미지 삭제 중 오류가 발생했습니다.');
+    notifyError(error);
     throw error;
   }
 };
@@ -155,7 +152,7 @@ const uploadNewImages = async () => {
         header: { 'Content-Type': 'multipart/form-data' }
       });
     } catch (error) {
-      notify('negative', '이미지 업로드 중 오류가 발생했습니다.');
+      notifyError(error);
       throw error;
     }
   }
@@ -201,11 +198,7 @@ const submitUpdateBoard = async () => {
     notify('positive', '게시글이 성공적으로 수정되었습니다!');
     await router.push(`/board/${boardId}`);
   } catch (error) {
-    if (error.response) {
-      notify('negative', `${error.response.data.message || error.response.data.errors[0]}`);
-    } else {
-      notify('negative', '게시글 수정 중 오류가 발생했습니다.');
-    }
+    notifyError(error);
   }
 };
 

@@ -36,7 +36,7 @@ import { ref } from 'vue';
 import useAxios from '@/services/axios.js';
 import CommentEditDialog from '@/components/comment/CommentUpdateDialog.vue';
 import { useAuthStore } from '@/stores/authStore.js';
-import { notify } from '@/util/notify.js';
+import { notify, notifyError } from '@/util/notify.js';
 import { formatDateTime } from '@/util/timeFormat.js';
 
 const props = defineProps({
@@ -75,6 +75,7 @@ const toggleCommentLike = async () => {
     if (user == null) {
       notify('negative', '로그인이 필요한 기능입니다.');
     } else {
+      // notifyError(error);
       notify('negative', error.response?.data?.message || '댓글 추천 처리 중 오류가 발생했습니다.');
     }
   }
@@ -97,6 +98,7 @@ const deleteComment = async () => {
     notify('positive', '댓글이 성공적으로 삭제되었습니다!');
     await refreshComment();
   } catch (error) {
+    notifyError(error);
     notify('negative', '댓글 삭제에 실패했습니다.');
   }
 };

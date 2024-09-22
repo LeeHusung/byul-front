@@ -33,7 +33,7 @@ import { useAuthStore } from '@/stores/authStore';
 import ProfileEditDialog from '@/components/ProfileEditDialog.vue';
 import useAxios from '@/services/axios.js';
 import '@/assets/css/mine.css';
-import { notify } from '@/util/notify.js';
+import { notify, notifyError } from '@/util/notify.js';
 
 const authStore = useAuthStore();
 
@@ -54,6 +54,8 @@ const loadProfile = async () => {
       ? `http://localhost:8080/api/v1/member/image/${response.data.memberImageUrl}`
       : new URL('@/assets/images/baseImage.jpg', import.meta.url).href;
   } catch (error) {
+    notifyError(error);
+
     notify('negative', '프로필 정보를 가져오는데 실패했습니다.');
   }
 };

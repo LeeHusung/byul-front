@@ -28,7 +28,7 @@
 <script setup>
 import { ref } from 'vue';
 import useAxios from '@/services/axios.js';
-import { notify } from '@/util/notify.js';
+import { notify, notifyError } from '@/util/notify.js';
 
 const props = defineProps({
   editedComment: Object
@@ -75,7 +75,7 @@ const submitEditComment = async (updatedComment) => {
 
     closeDialog();
   } catch (error) {
-    notify('negative', '댓글 수정에 실패했습니다.');
+    notifyError(error);
   }
 };
 </script>

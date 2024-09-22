@@ -65,21 +65,19 @@ import useAxios from '@/services/axios.js';
 import { useAuthStore } from '@/stores/authStore.js';
 import CommentList from '@/components/comment/CommentList.vue';
 import BoardDeleteDialog from '@/components/board/BoardDeleteDialog.vue';
-import { notify } from '@/util/notify.js';
+import { notify, notifyError } from '@/util/notify.js';
 import { formatDateTime } from '@/util/timeFormat.js';
 
 const router = useRouter();
 const route = useRoute();
 const board = ref({});
 
-const boardLikes = ref(0);
 const boardId = Number(route.params.id);
 const hasLikedPost = ref(false);
 
 const authStore = useAuthStore();
 const token = authStore.token;
 const user = authStore.user;
-console.log(user);
 
 const isOwnerBoard = computed(() => {
   if (user == null) {
@@ -91,8 +89,6 @@ const isOwnerBoard = computed(() => {
 const images = ref([]);
 const userImageUrl = computed(() => board.value.memberImageUrl);
 const profileImageUrl = computed(() => {
-  //TODO
-  // 여긴 왜 이렇게?
   return userImageUrl.value
     ? `http://localhost:8080/api/v1/member/image/${userImageUrl.value}`
     : new URL('@/assets/images/baseImage.jpg', import.meta.url).href;
@@ -110,37 +106,26 @@ const fetchImages = async () => {
       (imageData) => `http://localhost:8080/api/v1/board/image/${imageData.url}`
     );
   } catch (error) {
-    notify('negative', '이미지를 불러오는데 실패했습니다.');
+    notifyError(error);
   }
 };
 
 const goBack = () => {
-  const page = route.query.page || 1; // 이전 페이지 정보를 가져옴
-  const searchOption = route.query.searchOption || 'allSearch'; // 검색 옵션
-  const query = route.query.query || ''; // 검색어
-
-  // 목록 페이지로 이동 시 검색 옵션과 검색어도 함께 전달
   router.push({
-    name: 'Board',
-    query: {
-      page: page,
-      searchOption: searchOption,
-      query: query
-    }
+    name: 'Board'
   });
 };
 
 const fetchHasLikedPost = async () => {
-  if (token != null) {
+  if (user != null) {
     try {
       const response = await useAxios({
         type: 'get',
         url: `board/${boardId}/hasLiked`
       });
-      console.log(response);
       hasLikedPost.value = response.data;
     } catch (error) {
-      notify('negative', '좋아요 상태를 확인하는데 실패했습니다.');
+      notifyError(error);
     }
   }
 };
@@ -167,7 +152,7 @@ const togglePostLike = async () => {
         url: `board/${boardId}/like`
       });
       hasLikedPost.value = false;
-      boardLikes.value--;
+      //TODO fetch가 필요할까?
       await fetchBoardDetail();
       notify('positive', '게시글 추천이 취소되었습니다.');
     } else {
@@ -176,7 +161,6 @@ const togglePostLike = async () => {
         url: `board/${boardId}/like`
       });
       hasLikedPost.value = true;
-      boardLikes.value++;
       await fetchBoardDetail();
       notify('positive', '게시글 추천이 성공했습니다!');
     }
@@ -184,10 +168,7 @@ const togglePostLike = async () => {
     if (token == null) {
       notify('negative', '로그인이 필요한 기능입니다.');
     } else {
-      notify(
-        'negative',
-        error.response?.data?.message || '게시글 추천 처리 중 오류가 발생했습니다.'
-      );
+      notifyError(error);
     }
   }
 };
@@ -201,7 +182,7 @@ const fetchBoardDetail = async () => {
     console.log(response);
     board.value = response.data;
   } catch (error) {
-    notify('negative', '게시글을 불러오는데 실패했습니다.');
+    notifyError(error);
   }
 };
 

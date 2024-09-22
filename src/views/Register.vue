@@ -72,9 +72,8 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
 import { authService } from '@/services/authService.js';
-import { notify } from '@/util/notify.js';
+import { notify, notifyError } from '@/util/notify.js';
 import useAxios from '@/services/axios.js';
 
 const email = ref('');
@@ -106,6 +105,8 @@ const checkEmail = async () => {
       emailError.value = ''; // 중복이 아니면 오류 메시지 초기화
     }
   } catch (error) {
+    notifyError(error);
+
     notify('negative', error.response?.data?.message || '이메일 검증 중 오류가 발생했습니다.');
   }
 };
@@ -122,6 +123,8 @@ const checkNickname = async () => {
       nicknameError.value = ''; // 중복이 아니면 오류 메시지 초기화
     }
   } catch (error) {
+    notifyError(error);
+
     notify('negative', error.response?.data?.message || '닉네임 검증 중 오류가 발생했습니다.');
   }
 };
@@ -155,6 +158,8 @@ const onSubmit = async () => {
     notify('positive', '회원가입에 성공했습니다!');
     await router.push('/');
   } catch (error) {
+    notifyError(error);
+
     if (error.response && error.response.data && error.response.data.errors) {
       const errorMessages = error.response.data.errors.map((err) => `${err.field}: ${err.reason}`);
       notify('negative', `회원가입 중 오류 발생: ${errorMessages.join(', ')}`);
